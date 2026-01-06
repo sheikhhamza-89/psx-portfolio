@@ -45,7 +45,7 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
               <th>Symbol</th>
               <th>Shares</th>
               <th>Avg. Cost</th>
-              <th>Current Price</th>
+              <th>Today's Price</th>
               <th>Investment</th>
               <th>Current Value</th>
               <th>P&L</th>
