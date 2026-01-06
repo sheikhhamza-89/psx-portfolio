@@ -1,74 +1,92 @@
 # PSXFolio — Pakistan Stock Exchange Portfolio Tracker
 
-A simple, elegant web app to track your PSX (Pakistan Stock Exchange) investments.
+A modern, beautiful portfolio tracker for Pakistan Stock Exchange (PSX) stocks built with React.
 
-![PSXFolio Screenshot](https://img.shields.io/badge/Status-Ready%20to%20Deploy-brightgreen)
+![PSXFolio](https://img.shields.io/badge/PSX-Portfolio-00e5a0?style=for-the-badge)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=for-the-badge&logo=vite)
 
 ## Features
 
-- ✅ **Add/Edit/Delete stocks** — Track symbol, shares, and purchase price
-- 📊 **Portfolio overview** — See investment, current value, and P&L at a glance
-- 💾 **LocalStorage** — Data persists in your browser
-- 🔄 **Price fetching** — Attempts to fetch current prices (with manual fallback)
-- 📱 **Responsive** — Works on desktop, tablet, and mobile
-- 🎨 **Trading terminal aesthetic** — Professional dark theme
+- 📊 **Real-time Price Fetching** - Fetches live prices from PSX
+- 💰 **Portfolio Tracking** - Track your investments, current value, and P&L
+- 📈 **Interactive Charts** - Visualize your portfolio with:
+  - Allocation donut chart
+  - P&L bar chart
+  - Investment vs Current value area chart
+- 💾 **Local Storage** - Your data persists in your browser
+- 🎨 **Trading Terminal Aesthetic** - Beautiful dark theme with terminal vibes
+- 📱 **Responsive Design** - Works on desktop and mobile
 
-## Quick Start
+## Tech Stack
 
-### Option 1: Open Directly
-Simply open `index.html` in your browser.
+- **React 19** - Modern React with hooks
+- **Vite** - Lightning fast build tool
+- **Recharts** - Beautiful, composable charts
+- **CSS Variables** - Theming and customization
 
-### Option 2: Local Server
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
 ```bash
-npx serve
+# Clone the repository
+git clone https://github.com/sheikhhamza-89/psx-portfolio.git
+
+# Navigate to project
+cd psx-portfolio
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-## Deploy to Netlify
+### Build for Production
 
-### Via Drag & Drop
-1. Go to [app.netlify.com/drop](https://app.netlify.com/drop)
-2. Drag the entire project folder
-
-### Via Netlify CLI
 ```bash
-npx netlify-cli deploy --prod
+npm run build
 ```
-
-### Via GitHub Integration
-1. Push this repo to GitHub
-2. Connect your GitHub repo to Netlify
-3. Deploy automatically on every push
 
 ## Project Structure
 
 ```
 psx-portfolio/
-├── index.html    # Main HTML structure
-├── style.css     # Styling (dark theme)
-├── script.js     # Application logic
-├── .gitignore    # Git ignore rules
-└── README.md     # This file
+├── src/
+│   ├── components/       # React UI components
+│   │   ├── charts/       # Chart components (Recharts)
+│   │   ├── Header.jsx
+│   │   ├── StockForm.jsx
+│   │   ├── PortfolioTable.jsx
+│   │   └── ...
+│   ├── hooks/            # Custom React hooks
+│   │   ├── usePortfolio.js
+│   │   ├── usePriceCache.js
+│   │   └── ...
+│   ├── services/         # API services
+│   │   └── priceService.js
+│   ├── utils/            # Utilities & constants
+│   ├── App.jsx
+│   └── index.css
+├── netlify.toml          # Netlify deployment config
+└── package.json
 ```
 
-## Usage
+## Deployment
 
-1. **Add a stock**: Enter symbol (e.g., OGDC, HBL, PSO), number of shares, and purchase price
-2. **View portfolio**: See all your holdings with real-time P&L calculations
-3. **Edit/Delete**: Use the action buttons in the table to modify entries
-4. **Refresh prices**: Click "Refresh Prices" to fetch latest prices
-
-## Note on Price Data
-
-PSX doesn't provide a free public API. The app attempts to fetch prices from Yahoo Finance (using `.KA` suffix for Karachi exchange). If unavailable, enter current prices manually.
-
-## Tech Stack
-
-- Pure HTML, CSS, JavaScript
-- No build tools required
-- No external dependencies
-- LocalStorage for data persistence
+This project is configured for Netlify deployment. Simply connect your GitHub repository to Netlify and it will automatically build and deploy.
 
 ## License
 
-MIT — Feel free to use and modify.
+MIT License
+
+---
+
+Made with ❤️ for Pakistani investors
 

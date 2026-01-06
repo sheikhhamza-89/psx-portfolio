@@ -1,124 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSX Portfolio Tracker</title>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PSXFolio — Pakistan Stock Exchange Portfolio Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="app-container">
-        <header class="header">
-            <div class="logo">
-                <span class="logo-icon">◈</span>
-                <h1>PSX<span class="highlight">Folio</span></h1>
-            </div>
-            <div class="header-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Total Investment</span>
-                    <span class="stat-value" id="total-investment">PKR 0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Current Value</span>
-                    <span class="stat-value" id="current-value">PKR 0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total P&L</span>
-                    <span class="stat-value" id="total-pnl">PKR 0</span>
-                </div>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <section class="form-section">
-                <h2 class="section-title">
-                    <span class="title-icon">+</span>
-                    <span id="form-title">Add New Stock</span>
-                </h2>
-                <form id="stock-form" class="stock-form">
-                    <input type="hidden" id="edit-index" value="">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="symbol">Symbol</label>
-                            <input type="text" id="symbol" placeholder="e.g. OGDC, HBL, PSO" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="shares">Shares</label>
-                            <input type="number" id="shares" placeholder="Number of shares" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="purchase-price">Purchase Price (PKR)</label>
-                            <input type="number" id="purchase-price" placeholder="Price per share" min="0" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="current-price">Current Price (PKR) <span class="optional">(optional)</span></label>
-                            <input type="number" id="current-price" placeholder="Leave blank to fetch" min="0" step="0.01">
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="submit-btn">
-                            <span class="btn-icon">+</span>
-                            Add Stock
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="cancel-btn" style="display: none;">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <section class="portfolio-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <span class="title-icon">◇</span>
-                        My Portfolio
-                    </h2>
-                    <button class="btn btn-refresh" id="refresh-btn" title="Refresh all prices">
-                        <span class="refresh-icon">↻</span>
-                        Refresh Prices
-                    </button>
-                </div>
-                
-                <div class="table-container">
-                    <table class="portfolio-table" id="portfolio-table">
-                        <thead>
-                            <tr>
-                                <th>Symbol</th>
-                                <th>Shares</th>
-                                <th>Avg. Cost</th>
-                                <th>Current Price</th>
-                                <th>Investment</th>
-                                <th>Current Value</th>
-                                <th>P&L</th>
-                                <th>P&L %</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="portfolio-body">
-                            <!-- Dynamic rows will be inserted here -->
-                        </tbody>
-                    </table>
-                    <div class="empty-state" id="empty-state">
-                        <span class="empty-icon">📊</span>
-                        <p>No stocks in your portfolio yet</p>
-                        <span class="empty-hint">Add your first stock above to get started</span>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer class="footer">
-            <p>PSXFolio — Track your Pakistan Stock Exchange investments</p>
-            <p class="disclaimer">Note: Prices are fetched from available sources. Verify with official PSX data.</p>
-        </footer>
-    </div>
-
-    <div class="toast" id="toast"></div>
-
-    <script src="script.js"></script>
-</body>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
 
