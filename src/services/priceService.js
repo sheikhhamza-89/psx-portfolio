@@ -29,6 +29,12 @@ export async function fetchPriceDataFromPSX(symbol) {
         let dayLow = null
         let dayHigh = null
 
+        // Debug: Log sample HTML around stats section
+        const statsSection = html.match(/stats_box[\s\S]{0,2000}/i)
+        if (statsSection) {
+          console.log(`📄 HTML sample for ${normalizedSymbol}:`, statsSection[0].substring(0, 500))
+        }
+
         // Extract Close Price using regex from PSX page
         const closeMatch = html.match(/quote__close[^>]*>\s*Rs\.?\s*([\d,]+\.?\d*)/)
         if (closeMatch) {
@@ -36,32 +42,75 @@ export async function fetchPriceDataFromPSX(symbol) {
           if (price <= 0) price = null
         }
 
-        // Extract LDCP (Last Day Closing Price)
-        const ldcpMatch = html.match(/LDCP<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/)
-        if (ldcpMatch) {
-          ldp = parseFloat(ldcpMatch[1].replace(/,/g, ''))
-          if (ldp <= 0) ldp = null
+        // Extract LDCP (Last Day Closing Price) - try multiple patterns
+        const ldcpPatterns = [
+          /LDCP<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
+          /LDCP<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          /"LDCP"[^>]*>[\s\S]*?<[^>]*>([\d,\.]+)</i,
+          /LDCP[\s\S]*?>([\d,\.]+)</i
+        ]
+        for (const pattern of ldcpPatterns) {
+          const ldcpMatch = html.match(pattern)
+          if (ldcpMatch) {
+            ldp = parseFloat(ldcpMatch[1].replace(/,/g, ''))
+            if (ldp > 0) {
+              console.log(`🔍 LDCP matched with pattern: ${pattern}`)
+              break
+            }
+          }
         }
 
-        // Extract 52 Week High
-        const high52wMatch = html.match(/52\s*Week\s*High<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/i)
-        if (high52wMatch) {
-          high52w = parseFloat(high52wMatch[1].replace(/,/g, ''))
-          if (high52w <= 0) high52w = null
+        // Extract 52 Week High - try multiple patterns
+        const high52wPatterns = [
+          /52\s*[Ww]eek\s*[Hh]igh<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
+          /52\s*[Ww]eek\s*[Hh]igh<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          /52\s*-?\s*[Ww](?:eek)?\s*[Hh](?:igh)?<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i
+        ]
+        for (const pattern of high52wPatterns) {
+          const high52wMatch = html.match(pattern)
+          if (high52wMatch && high52wMatch[1]) {
+            const val = parseFloat(high52wMatch[1].replace(/,/g, ''))
+            // Sanity check: 52w high should be reasonable (not millions for PSX stocks)
+            if (val > 0 && val < 50000) {
+              high52w = val
+              console.log(`🔍 52W High matched with pattern: ${pattern}, value: ${val}`)
+              break
+            }
+          }
         }
 
-        // Extract Day's Low
-        const dayLowMatch = html.match(/Low<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/)
-        if (dayLowMatch) {
-          dayLow = parseFloat(dayLowMatch[1].replace(/,/g, ''))
-          if (dayLow <= 0) dayLow = null
+        // Extract Day's Low - try multiple patterns
+        const dayLowPatterns = [
+          /Low<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
+          /Low<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          /"Low"[\s\S]*?>([\d,\.]+)</i
+        ]
+        for (const pattern of dayLowPatterns) {
+          const dayLowMatch = html.match(pattern)
+          if (dayLowMatch) {
+            dayLow = parseFloat(dayLowMatch[1].replace(/,/g, ''))
+            if (dayLow > 0) {
+              console.log(`🔍 Day Low matched with pattern: ${pattern}`)
+              break
+            }
+          }
         }
 
-        // Extract Day's High
-        const dayHighMatch = html.match(/High<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/)
-        if (dayHighMatch) {
-          dayHigh = parseFloat(dayHighMatch[1].replace(/,/g, ''))
-          if (dayHigh <= 0) dayHigh = null
+        // Extract Day's High - try multiple patterns  
+        const dayHighPatterns = [
+          /High<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
+          /High<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          /"High"[\s\S]*?>([\d,\.]+)</i
+        ]
+        for (const pattern of dayHighPatterns) {
+          const dayHighMatch = html.match(pattern)
+          if (dayHighMatch) {
+            dayHigh = parseFloat(dayHighMatch[1].replace(/,/g, ''))
+            if (dayHigh > 0) {
+              console.log(`🔍 Day High matched with pattern: ${pattern}`)
+              break
+            }
+          }
         }
 
         if (price !== null || ldp !== null) {

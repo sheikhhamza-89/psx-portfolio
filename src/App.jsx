@@ -1,9 +1,20 @@
 import { useState, useCallback } from 'react'
 import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockDetailModal, Toast, Footer } from './components'
-import { usePortfolio, useToast } from './hooks'
+import { useSupabasePortfolio, useToast } from './hooks'
 
 function App() {
-  const { stocks, stats, addStock, sellStock, updateStock, deleteStock, deleteTransaction, refreshPrices } = usePortfolio()
+  const { 
+    stocks, 
+    stats, 
+    isLoading,
+    isUsingSupabase,
+    addStock, 
+    sellStock, 
+    updateStock, 
+    deleteStock, 
+    deleteTransaction, 
+    refreshPrices 
+  } = useSupabasePortfolio()
   const { toast, showToast } = useToast()
   const [activeTab, setActiveTab] = useState('summary')
   const [editingStock, setEditingStock] = useState(null)
@@ -87,9 +98,21 @@ function App() {
     ? stocks.find(s => s.symbol === selectedStock.symbol) 
     : null
 
+  // Show loading state while initializing
+  if (isLoading) {
+    return (
+      <div className="app-container">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading portfolio...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app-container">
-      <Header stats={stats} />
+      <Header stats={stats} isUsingSupabase={isUsingSupabase} />
       
       <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
       
