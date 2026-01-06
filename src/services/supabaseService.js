@@ -10,6 +10,47 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 // ============================================================================
 
 /**
+ * Get a single stock by symbol
+ */
+export async function getStockBySymbol(symbol) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData?.user?.id || null
+
+  let query = supabase
+    .from('stocks')
+    .select(`*, transactions (*)`)
+    .eq('symbol', symbol.toUpperCase())
+
+  if (userId) {
+    query = query.eq('user_id', userId)
+  } else {
+    query = query.is('user_id', null)
+  }
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error || !data) return null
+
+  return {
+    id: data.id,
+    symbol: data.symbol,
+    category: data.category,
+    shares: parseFloat(data.shares),
+    purchasePrice: parseFloat(data.purchase_price),
+    currentPrice: data.current_price ? parseFloat(data.current_price) : null,
+    transactions: (data.transactions || []).map(tx => ({
+      id: tx.id,
+      type: tx.type,
+      shares: parseFloat(tx.shares),
+      price: parseFloat(tx.price),
+      date: tx.date
+    }))
+  }
+}
+
+/**
  * Get all stocks for the current user
  */
 export async function getStocks() {
@@ -58,15 +99,22 @@ export async function upsertStock(stockData) {
   if (!isSupabaseConfigured()) return null
 
   const { data: userData } = await supabase.auth.getUser()
-  const userId = userData?.user?.id
+  const userId = userData?.user?.id || null
 
-  // Check if stock exists
-  const { data: existing } = await supabase
+  // Check if stock exists (by symbol only, since we may not have user auth)
+  let query = supabase
     .from('stocks')
-    .select('id')
+    .select('id, shares, purchase_price')
     .eq('symbol', stockData.symbol.toUpperCase())
-    .eq('user_id', userId)
-    .single()
+  
+  // Only filter by user_id if we have one
+  if (userId) {
+    query = query.eq('user_id', userId)
+  } else {
+    query = query.is('user_id', null)
+  }
+
+  const { data: existing } = await query.maybeSingle()
 
   if (existing) {
     // Update existing stock
@@ -90,7 +138,7 @@ export async function upsertStock(stockData) {
       console.error('Error updating stock:', error)
       return null
     }
-    return { ...data, isNew: false }
+    return { ...data, isNew: false, existingId: existing.id }
   } else {
     // Insert new stock
     const { data, error } = await supabase

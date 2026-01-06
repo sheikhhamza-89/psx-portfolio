@@ -67,11 +67,11 @@ export function useSupabasePortfolio() {
     }
 
     if (useSupabase) {
-      // Supabase mode
-      const existingStock = supabaseStocks.find(s => s.symbol === symbol)
+      // Supabase mode - check database directly for existing stock
+      const existingStock = await supabaseService.getStockBySymbol(symbol)
       
       if (existingStock) {
-        // Calculate new totals
+        // Calculate new totals including the new purchase
         const allTransactions = [...existingStock.transactions, {
           type: 'buy',
           shares: stockData.shares,
@@ -85,6 +85,7 @@ export function useSupabasePortfolio() {
         )
         const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
 
+        // Update existing stock with new totals
         await supabaseService.upsertStock({
           symbol,
           category: stockData.category || existingStock.category,
@@ -93,6 +94,7 @@ export function useSupabasePortfolio() {
           currentPrice
         })
 
+        // Add the buy transaction
         await supabaseService.addTransaction(existingStock.id, {
           type: 'buy',
           shares: stockData.shares,
@@ -101,6 +103,7 @@ export function useSupabasePortfolio() {
 
         onToast?.(`Added ${stockData.shares} shares to ${symbol}`, 'success')
       } else {
+        // New stock - insert it
         const result = await supabaseService.upsertStock({
           symbol,
           category: stockData.category,
@@ -109,7 +112,7 @@ export function useSupabasePortfolio() {
           currentPrice
         })
 
-        if (result) {
+        if (result && result.id) {
           await supabaseService.addTransaction(result.id, {
             type: 'buy',
             shares: stockData.shares,
@@ -226,7 +229,8 @@ export function useSupabasePortfolio() {
     const symbol = sellData.symbol.toUpperCase().trim()
     
     if (useSupabase) {
-      const stock = supabaseStocks.find(s => s.symbol === symbol)
+      // Check database directly for the stock
+      const stock = await supabaseService.getStockBySymbol(symbol)
       if (!stock) {
         onToast?.(`Stock ${symbol} not found`, 'error')
         return
