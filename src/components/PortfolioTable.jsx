@@ -150,9 +150,6 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
                       title="View transaction history"
                     >
                       {stock.symbol}
-                      {stock.transactions?.length > 0 && (
-                        <span className="txn-count">{stock.transactions.length}</span>
-                      )}
                     </button>
                   </td>
                   <td className="category">
