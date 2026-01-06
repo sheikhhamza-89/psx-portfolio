@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockDetailModal, Toast, Footer } from './components'
+import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockFocusTab, StockDetailModal, Toast, Footer } from './components'
 import { useSupabasePortfolio, useToast } from './hooks'
 
 function App() {
@@ -138,6 +138,10 @@ function App() {
             onCancelEdit={handleCancelEdit}
             onSymbolClick={handleSymbolClick}
           />
+        )}
+
+        {activeTab === 'focus' && (
+          <StockFocusTab stocks={stocks} />
         )}
       </main>
 

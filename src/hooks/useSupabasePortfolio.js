@@ -19,12 +19,23 @@ export function useSupabasePortfolio() {
   // Check if Supabase is configured and load data
   useEffect(() => {
     async function init() {
+      console.log('🔍 Checking Supabase configuration...')
+      console.log('📦 isSupabaseConfigured:', isSupabaseConfigured())
+      
       if (isSupabaseConfigured()) {
+        console.log('✅ Supabase is configured, fetching stocks...')
         const data = await supabaseService.getStocks()
+        console.log('📊 Supabase data:', data)
+        
         if (data !== null) {
           setSupabaseStocks(data)
           setUseSupabase(true)
+          console.log('✅ Using Supabase mode with', data.length, 'stocks')
+        } else {
+          console.log('⚠️ getStocks returned null, falling back to localStorage')
         }
+      } else {
+        console.log('⚠️ Supabase not configured, using localStorage')
       }
       setIsLoading(false)
     }
