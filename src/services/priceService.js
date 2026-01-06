@@ -1,9 +1,9 @@
 import { CORS_PROXIES, PSX_BASE_URL } from '../utils/constants'
 
 /**
- * Fetches stock price and LDP from PSX website using CORS proxy
+ * Fetches stock price, LDP, 52-week high, daily low/high from PSX website using CORS proxy
  * @param {string} symbol - Stock symbol (e.g., 'OGDC', 'HBL')
- * @returns {Promise<{price: number|null, ldp: number|null}>} The stock prices
+ * @returns {Promise<{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}>} The stock data
  */
 export async function fetchPriceDataFromPSX(symbol) {
   const normalizedSymbol = symbol.toUpperCase().trim()
@@ -25,6 +25,9 @@ export async function fetchPriceDataFromPSX(symbol) {
         const html = await response.text()
         let price = null
         let ldp = null
+        let high52w = null
+        let dayLow = null
+        let dayHigh = null
 
         // Extract Close Price using regex from PSX page
         const closeMatch = html.match(/quote__close[^>]*>\s*Rs\.?\s*([\d,]+\.?\d*)/)
@@ -40,9 +43,30 @@ export async function fetchPriceDataFromPSX(symbol) {
           if (ldp <= 0) ldp = null
         }
 
+        // Extract 52 Week High
+        const high52wMatch = html.match(/52\s*Week\s*High<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/i)
+        if (high52wMatch) {
+          high52w = parseFloat(high52wMatch[1].replace(/,/g, ''))
+          if (high52w <= 0) high52w = null
+        }
+
+        // Extract Day's Low
+        const dayLowMatch = html.match(/Low<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/)
+        if (dayLowMatch) {
+          dayLow = parseFloat(dayLowMatch[1].replace(/,/g, ''))
+          if (dayLow <= 0) dayLow = null
+        }
+
+        // Extract Day's High
+        const dayHighMatch = html.match(/High<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/)
+        if (dayHighMatch) {
+          dayHigh = parseFloat(dayHighMatch[1].replace(/,/g, ''))
+          if (dayHigh <= 0) dayHigh = null
+        }
+
         if (price !== null || ldp !== null) {
-          console.log(`✅ Fetched ${normalizedSymbol} - Price: ${price}, LDP: ${ldp}`)
-          return { price, ldp }
+          console.log(`✅ Fetched ${normalizedSymbol} - Price: ${price}, LDP: ${ldp}, 52wH: ${high52w}, Low: ${dayLow}, High: ${dayHigh}`)
+          return { price, ldp, high52w, dayLow, dayHigh }
         }
       }
     } catch (error) {
@@ -50,7 +74,7 @@ export async function fetchPriceDataFromPSX(symbol) {
     }
   }
 
-  return { price: null, ldp: null }
+  return { price: null, ldp: null, high52w: null, dayLow: null, dayHigh: null }
 }
 
 /**
@@ -120,9 +144,9 @@ export async function fetchStockPrice(symbol) {
 }
 
 /**
- * Fetches complete stock data including price and LDP
+ * Fetches complete stock data including price, LDP, 52-week high, daily low/high
  * @param {string} symbol - Stock symbol
- * @returns {Promise<{price: number|null, ldp: number|null}>} Stock data
+ * @returns {Promise<{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}>} Stock data
  */
 export async function fetchStockData(symbol) {
   // Try PSX first
@@ -137,6 +161,9 @@ export async function fetchStockData(symbol) {
   
   return {
     price: yahooPrice || psxData.ldp,
-    ldp: psxData.ldp
+    ldp: psxData.ldp,
+    high52w: psxData.high52w,
+    dayLow: psxData.dayLow,
+    dayHigh: psxData.dayHigh
   }
 }

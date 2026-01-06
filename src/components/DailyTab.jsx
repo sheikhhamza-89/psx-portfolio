@@ -9,6 +9,9 @@ export function DailyTab({ stocks }) {
       const ldp = stock.ldp || stock.purchasePrice // Last Day Price
       const buyingPrice = stock.purchasePrice
       const shares = stock.shares
+      const high52w = stock.high52w || null
+      const dayLow = stock.dayLow || null
+      const dayHigh = stock.dayHigh || null
 
       // Daily change calculations
       const dailyChangePercent = ldp > 0 ? ((priceNow - ldp) / ldp) * 100 : 0
@@ -20,6 +23,9 @@ export function DailyTab({ stocks }) {
         priceNow,
         ldp,
         buyingPrice,
+        high52w,
+        dayLow,
+        dayHigh,
         dailyChangePercent,
         dailyChangeAmount,
         isGainer
@@ -64,6 +70,30 @@ export function DailyTab({ stocks }) {
     return [...stocksWithDailyStats]
       .filter(s => s.dailyChangeAmount < 0)
       .sort((a, b) => a.dailyChangeAmount - b.dailyChangeAmount)
+      .slice(0, 5)
+  }, [stocksWithDailyStats])
+
+  // 52 Week Droppers - stocks trading below their 52-week high
+  const weekDroppers = useMemo(() => {
+    return [...stocksWithDailyStats]
+      .filter(s => s.high52w && s.priceNow < s.high52w)
+      .map(s => ({
+        ...s,
+        dropFrom52w: ((s.high52w - s.priceNow) / s.high52w) * 100
+      }))
+      .sort((a, b) => b.dropFrom52w - a.dropFrom52w)
+      .slice(0, 5)
+  }, [stocksWithDailyStats])
+
+  // Most Volatile - stocks with highest daily range (high - low)
+  const mostVolatile = useMemo(() => {
+    return [...stocksWithDailyStats]
+      .filter(s => s.dayLow && s.dayHigh && s.dayLow > 0)
+      .map(s => ({
+        ...s,
+        volatility: ((s.dayHigh - s.dayLow) / s.dayLow) * 100
+      }))
+      .sort((a, b) => b.volatility - a.volatility)
       .slice(0, 5)
   }, [stocksWithDailyStats])
 
@@ -228,6 +258,73 @@ export function DailyTab({ stocks }) {
                     <td>{formatNumber(stock.buyingPrice)}</td>
                     <td className="percent-cell negative">▼ {Math.abs(stock.dailyChangePercent).toFixed(2)}%</td>
                     <td className="amount-cell negative">{formatNumber(stock.dailyChangeAmount)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 52w Droppers and Most Volatile Section */}
+      <div className="daily-grid secondary-grid">
+        {/* 52w DROPPERS */}
+        <div className="daily-section droppers">
+          <h3 className="daily-section-title droppers-title">52w DROPPERS</h3>
+          <table className="daily-table">
+            <thead>
+              <tr>
+                <th>SYMBOL</th>
+                <th>Price now</th>
+                <th>LDP</th>
+                <th>Buying Price</th>
+                <th>52-Week High</th>
+                <th>drop</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weekDroppers.length === 0 ? (
+                <tr><td colSpan="6" className="no-data">No 52w data available</td></tr>
+              ) : (
+                weekDroppers.map(stock => (
+                  <tr key={stock.symbol} className="dropper-row">
+                    <td className="symbol-cell dropper">{stock.symbol}</td>
+                    <td>{formatNumber(stock.priceNow)}</td>
+                    <td>{formatNumber(stock.ldp)}</td>
+                    <td>{formatNumber(stock.buyingPrice)}</td>
+                    <td className="high52w-cell">{formatNumber(stock.high52w)}</td>
+                    <td className="drop-cell">{stock.dropFrom52w.toFixed(2)}%</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* MOST VOLATILE */}
+        <div className="daily-section volatile">
+          <h3 className="daily-section-title volatile-title">MOST VOLATILE (Daily)</h3>
+          <table className="daily-table">
+            <thead>
+              <tr>
+                <th>SYMBOL</th>
+                <th>low</th>
+                <th>high</th>
+                <th>volatility</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mostVolatile.length === 0 ? (
+                <tr><td colSpan="4" className="no-data">N/A</td></tr>
+              ) : (
+                mostVolatile.map(stock => (
+                  <tr key={stock.symbol} className="volatile-row">
+                    <td className="symbol-cell volatile">{stock.symbol}</td>
+                    <td>{stock.dayLow ? formatNumber(stock.dayLow) : '#N/A'}</td>
+                    <td>{stock.dayHigh ? formatNumber(stock.dayHigh) : '#N/A'}</td>
+                    <td className="volatility-cell">
+                      {stock.volatility ? `${stock.volatility.toFixed(2)}%` : 'N/A'}
+                    </td>
                   </tr>
                 ))
               )}

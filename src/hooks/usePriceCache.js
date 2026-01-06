@@ -26,39 +26,57 @@ export function usePriceCache() {
   }, [cache])
 
   /**
-   * Get cached data (price and LDP) if still valid
+   * Get cached data if still valid
    * @param {string} symbol - Stock symbol
-   * @returns {{price: number|null, ldp: number|null}|null} Cached data or null
+   * @returns {{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}|null} Cached data or null
    */
   const getCachedData = useCallback((symbol) => {
     const normalizedSymbol = symbol.toUpperCase().trim()
     const cached = cache[normalizedSymbol]
     
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return { price: cached.price, ldp: cached.ldp }
+      return { 
+        price: cached.price, 
+        ldp: cached.ldp,
+        high52w: cached.high52w || null,
+        dayLow: cached.dayLow || null,
+        dayHigh: cached.dayHigh || null
+      }
     }
     
     return null
   }, [cache])
 
   /**
-   * Set price in cache
+   * Set stock data in cache
    * @param {string} symbol - Stock symbol
-   * @param {number} price - Price to cache
-   * @param {number} ldp - LDP to cache (optional)
+   * @param {object} data - Stock data to cache
    */
-  const setCachedPrice = useCallback((symbol, price, ldp = null) => {
+  const setCachedData = useCallback((symbol, data) => {
     const normalizedSymbol = symbol.toUpperCase().trim()
     
     setCache(prev => ({
       ...prev,
       [normalizedSymbol]: {
-        price,
-        ldp,
+        price: data.price,
+        ldp: data.ldp,
+        high52w: data.high52w,
+        dayLow: data.dayLow,
+        dayHigh: data.dayHigh,
         timestamp: Date.now()
       }
     }))
   }, [setCache])
+
+  /**
+   * Set price in cache (legacy support)
+   * @param {string} symbol - Stock symbol
+   * @param {number} price - Price to cache
+   * @param {number} ldp - LDP to cache (optional)
+   */
+  const setCachedPrice = useCallback((symbol, price, ldp = null) => {
+    setCachedData(symbol, { price, ldp, high52w: null, dayLow: null, dayHigh: null })
+  }, [setCachedData])
 
   /**
    * Fetch price with caching
@@ -84,15 +102,15 @@ export function usePriceCache() {
   }, [getCachedPrice, setCachedPrice])
 
   /**
-   * Fetch complete stock data (price + LDP) with caching
+   * Fetch complete stock data with caching
    * @param {string} symbol - Stock symbol
-   * @returns {Promise<{price: number|null, ldp: number|null}>} Stock data
+   * @returns {Promise<{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}>} Stock data
    */
   const getStockData = useCallback(async (symbol) => {
     // Check cache first
     const cachedData = getCachedData(symbol)
     if (cachedData !== null && cachedData.price !== null) {
-      console.log(`📦 Using cached data for ${symbol}: Price=${cachedData.price}, LDP=${cachedData.ldp}`)
+      console.log(`📦 Using cached data for ${symbol}: Price=${cachedData.price}, LDP=${cachedData.ldp}, 52wH=${cachedData.high52w}`)
       return cachedData
     }
 
@@ -100,11 +118,11 @@ export function usePriceCache() {
     const data = await fetchStockData(symbol)
     
     if (data.price !== null) {
-      setCachedPrice(symbol, data.price, data.ldp)
+      setCachedData(symbol, data)
     }
     
     return data
-  }, [getCachedData, setCachedPrice])
+  }, [getCachedData, setCachedData])
 
   /**
    * Clear expired entries from cache

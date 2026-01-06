@@ -203,7 +203,7 @@ export function usePortfolio() {
   }, [setStocks])
 
   /**
-   * Refresh all stock prices and LDP
+   * Refresh all stock prices, LDP, 52w high, and daily low/high
    */
   const refreshPrices = useCallback(async (onToast) => {
     if (stocks.length === 0) {
@@ -223,7 +223,10 @@ export function usePortfolio() {
         updatedStocks[i] = { 
           ...stock, 
           currentPrice: data.price,
-          ldp: data.ldp || stock.ldp || data.price // Keep previous LDP if not available
+          ldp: data.ldp || stock.ldp || data.price, // Keep previous LDP if not available
+          high52w: data.high52w || stock.high52w || null,
+          dayLow: data.dayLow || null,
+          dayHigh: data.dayHigh || null
         }
         updated++
       } else {
