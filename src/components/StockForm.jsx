@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { STOCK_CATEGORIES } from '../utils/constants'
+import { STOCK_CATEGORIES, SYMBOL_CATEGORY_MAP } from '../utils/constants'
 
 export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks }) {
   const [transactionType, setTransactionType] = useState('buy')
@@ -11,6 +11,7 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
     currentPrice: ''
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [isCategoryAutoPopulated, setIsCategoryAutoPopulated] = useState(false)
 
   // Reset form when editingStock changes
   useEffect(() => {
@@ -23,6 +24,7 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
         currentPrice: editingStock.currentPrice || ''
       })
       setTransactionType('buy')
+      setIsCategoryAutoPopulated(!!SYMBOL_CATEGORY_MAP[editingStock.symbol])
     } else {
       setFormData({
         symbol: '',
@@ -31,8 +33,28 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
         price: '',
         currentPrice: ''
       })
+      setIsCategoryAutoPopulated(false)
     }
   }, [editingStock])
+
+  // Auto-populate category when symbol changes
+  useEffect(() => {
+    if (transactionType === 'buy' && formData.symbol) {
+      const upperSymbol = formData.symbol.toUpperCase()
+      const mappedCategory = SYMBOL_CATEGORY_MAP[upperSymbol]
+      
+      if (mappedCategory) {
+        setFormData(prev => ({ ...prev, category: mappedCategory }))
+        setIsCategoryAutoPopulated(true)
+      } else {
+        // Only clear if it was auto-populated before
+        if (isCategoryAutoPopulated) {
+          setFormData(prev => ({ ...prev, category: '' }))
+        }
+        setIsCategoryAutoPopulated(false)
+      }
+    }
+  }, [formData.symbol, transactionType])
 
   // Get available shares for selling
   const getAvailableShares = () => {
@@ -61,6 +83,7 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
       price: '',
       currentPrice: ''
     })
+    setIsCategoryAutoPopulated(false)
   }
 
   const handleSubmit = async (e) => {
@@ -115,6 +138,7 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
       price: '',
       currentPrice: ''
     })
+    setIsCategoryAutoPopulated(false)
   }
 
   const handleCancel = () => {
@@ -125,7 +149,14 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
       price: '',
       currentPrice: ''
     })
+    setIsCategoryAutoPopulated(false)
     onCancelEdit?.()
+  }
+
+  // Get category label for display
+  const getCategoryLabel = (value) => {
+    const cat = STOCK_CATEGORIES.find(c => c.value === value)
+    return cat ? cat.label : value
   }
 
   const isEditing = !!editingStock
@@ -198,21 +229,37 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
 
           {!isSelling && (
             <div className="form-group">
-              <label htmlFor="category">Category</label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select category...</option>
-                {STOCK_CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="category">
+                Category
+                {isCategoryAutoPopulated && (
+                  <span className="auto-badge">Auto</span>
+                )}
+              </label>
+              {isCategoryAutoPopulated ? (
+                // Read-only display when auto-populated
+                <div className="category-display">
+                  <span className={`category-badge ${formData.category}`}>
+                    {getCategoryLabel(formData.category)}
+                  </span>
+                  <input type="hidden" name="category" value={formData.category} />
+                </div>
+              ) : (
+                // Editable dropdown when not auto-populated
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select category...</option>
+                  {STOCK_CATEGORIES.map(cat => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
           

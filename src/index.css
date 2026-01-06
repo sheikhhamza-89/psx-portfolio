@@ -647,6 +647,33 @@ body {
   font-weight: normal;
 }
 
+.auto-badge {
+  font-size: 0.55rem;
+  background: var(--gain-bg);
+  color: var(--gain);
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: var(--space-xs);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.category-display {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+}
+
+.category-display .category-badge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
 .form-actions {
   display: flex;
   gap: var(--space-md);
