@@ -11,7 +11,7 @@ export function usePortfolio() {
   const { getPrice } = usePriceCache()
 
   /**
-   * Add a new stock to portfolio
+   * Add a new stock to portfolio (with transaction history)
    */
   const addStock = useCallback(async (stockData, onToast) => {
     const symbol = stockData.symbol.toUpperCase().trim()
@@ -28,36 +28,57 @@ export function usePortfolio() {
       }
     }
 
-    const newStock = {
+    // Create new transaction
+    const newTransaction = {
       id: Date.now().toString(),
-      symbol,
-      category: stockData.category,
+      type: 'buy',
       shares: stockData.shares,
-      purchasePrice: stockData.purchasePrice,
-      currentPrice,
-      addedAt: new Date().toISOString()
+      price: stockData.purchasePrice,
+      date: new Date().toISOString()
     }
 
     setStocks(prev => {
       const existingIndex = prev.findIndex(s => s.symbol === symbol)
       
       if (existingIndex >= 0) {
-        // Average the position
+        // Add to existing position with transaction history
         const existing = prev[existingIndex]
-        const totalShares = existing.shares + newStock.shares
-        const totalCost = (existing.shares * existing.purchasePrice) + (newStock.shares * newStock.purchasePrice)
+        const existingTransactions = existing.transactions || []
+        
+        // Calculate new totals from all transactions
+        const allTransactions = [...existingTransactions, newTransaction]
+        const totalShares = allTransactions.reduce((sum, t) => 
+          sum + (t.type === 'buy' ? t.shares : -t.shares), 0
+        )
+        const totalCost = allTransactions.reduce((sum, t) => 
+          sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
+        )
+        const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
         
         const updated = [...prev]
         updated[existingIndex] = {
           ...existing,
-          category: newStock.category || existing.category,
+          category: stockData.category || existing.category,
           shares: totalShares,
-          purchasePrice: parseFloat((totalCost / totalShares).toFixed(2)),
-          currentPrice: newStock.currentPrice
+          purchasePrice: parseFloat(avgPrice.toFixed(2)),
+          currentPrice: currentPrice,
+          transactions: allTransactions
         }
         
-        onToast?.(`Averaged position in ${symbol}`, 'success')
+        onToast?.(`Added ${stockData.shares} shares to ${symbol}`, 'success')
         return updated
+      }
+      
+      // New stock entry
+      const newStock = {
+        id: Date.now().toString(),
+        symbol,
+        category: stockData.category,
+        shares: stockData.shares,
+        purchasePrice: stockData.purchasePrice,
+        currentPrice,
+        addedAt: new Date().toISOString(),
+        transactions: [newTransaction]
       }
       
       onToast?.(`Added ${symbol} to portfolio`, 'success')
@@ -84,6 +105,46 @@ export function usePortfolio() {
         onToast?.(`Removed ${stock.symbol}`, 'success')
       }
       return prev.filter(s => s.id !== id)
+    })
+  }, [setStocks])
+
+  /**
+   * Delete a specific transaction from a stock
+   */
+  const deleteTransaction = useCallback((symbol, transactionId, onToast) => {
+    setStocks(prev => {
+      const stockIndex = prev.findIndex(s => s.symbol === symbol)
+      if (stockIndex === -1) return prev
+
+      const stock = prev[stockIndex]
+      const transactions = stock.transactions || []
+      const newTransactions = transactions.filter(t => t.id !== transactionId)
+
+      // If no transactions left, remove the stock entirely
+      if (newTransactions.length === 0) {
+        onToast?.(`Removed ${symbol} from portfolio`, 'success')
+        return prev.filter(s => s.symbol !== symbol)
+      }
+
+      // Recalculate totals
+      const totalShares = newTransactions.reduce((sum, t) => 
+        sum + (t.type === 'buy' ? t.shares : -t.shares), 0
+      )
+      const totalCost = newTransactions.reduce((sum, t) => 
+        sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
+      )
+      const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
+
+      const updated = [...prev]
+      updated[stockIndex] = {
+        ...stock,
+        shares: totalShares,
+        purchasePrice: parseFloat(avgPrice.toFixed(2)),
+        transactions: newTransactions
+      }
+
+      onToast?.(`Removed transaction from ${symbol}`, 'success')
+      return updated
     })
   }, [setStocks])
 
@@ -155,7 +216,7 @@ export function usePortfolio() {
     addStock,
     updateStock,
     deleteStock,
+    deleteTransaction,
     refreshPrices
   }
 }
-

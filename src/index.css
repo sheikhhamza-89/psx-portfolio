@@ -1208,6 +1208,295 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Symbol Link & Transaction Count
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.symbol-link {
+  background: none;
+  border: none;
+  color: var(--accent-secondary);
+  font-family: var(--font-mono);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.symbol-link:hover {
+  background: rgba(57, 186, 230, 0.15);
+  color: var(--accent-secondary);
+}
+
+.txn-count {
+  font-size: 0.6rem;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Stock Detail Modal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-lg);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.modal-title-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: var(--loss-bg);
+  color: var(--loss);
+}
+
+/* Stock Detail Stats */
+.stock-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.detail-stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.detail-stat-value.current {
+  color: var(--accent-tertiary);
+}
+
+.detail-stat-value.positive {
+  color: var(--gain);
+}
+
+.detail-stat-value.negative {
+  color: var(--loss);
+}
+
+/* Transactions Section */
+.transactions-section {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.transactions-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.transactions-icon {
+  font-size: 1.1rem;
+}
+
+.no-transactions {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
+}
+
+.no-transactions p {
+  margin-bottom: var(--space-xs);
+}
+
+.no-transactions .hint {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.transactions-table-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.transactions-table th {
+  background: var(--bg-elevated);
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-medium);
+  position: sticky;
+  top: 0;
+}
+
+.transactions-table td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.transactions-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.txn-date {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.txn-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.txn-type.buy {
+  background: var(--gain-bg);
+  color: var(--gain);
+}
+
+.txn-type.sell {
+  background: var(--loss-bg);
+  color: var(--loss);
+}
+
+.txn-shares {
+  font-weight: 500;
+}
+
+.txn-price {
+  color: var(--text-secondary);
+}
+
+.txn-total {
+  font-weight: 600;
+}
+
+.txn-pnl {
+  font-weight: 500;
+}
+
+.txn-pnl.positive {
+  color: var(--gain);
+}
+
+.txn-pnl.negative {
+  color: var(--loss);
+}
+
+.txn-pnl-percent {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+.txn-actions {
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Loading State
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1379,6 +1668,41 @@ body {
   
   .tab-icon {
     font-size: 1.3rem;
+  }
+  
+  /* Modal responsive */
+  .modal-overlay {
+    padding: var(--space-sm);
+  }
+  
+  .modal-content {
+    max-height: 95vh;
+  }
+  
+  .modal-header {
+    padding: var(--space-md);
+  }
+  
+  .modal-title {
+    font-size: 1.2rem;
+  }
+  
+  .stock-detail-stats {
+    grid-template-columns: repeat(2, 1fr);
+    padding: var(--space-md);
+  }
+  
+  .transactions-section {
+    padding: var(--space-md);
+  }
+  
+  .transactions-table {
+    font-size: 0.7rem;
+  }
+  
+  .transactions-table th,
+  .transactions-table td {
+    padding: var(--space-xs) var(--space-sm);
   }
 }
 

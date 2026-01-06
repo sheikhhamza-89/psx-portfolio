@@ -9,7 +9,8 @@ export function PositionsTab({
   onRefresh, 
   isRefreshing,
   editingStock,
-  onCancelEdit 
+  onCancelEdit,
+  onSymbolClick
 }) {
   return (
     <div className="positions-tab">
@@ -25,8 +26,8 @@ export function PositionsTab({
         onDelete={onDelete}
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
+        onSymbolClick={onSymbolClick}
       />
     </div>
   )
 }
-

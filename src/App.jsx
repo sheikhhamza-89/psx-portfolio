@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react'
-import { Header, TabNavigation, SummaryTab, PositionsTab, Toast, Footer } from './components'
+import { Header, TabNavigation, SummaryTab, PositionsTab, StockDetailModal, Toast, Footer } from './components'
 import { usePortfolio, useToast } from './hooks'
 
 function App() {
-  const { stocks, stats, addStock, updateStock, deleteStock, refreshPrices } = usePortfolio()
+  const { stocks, stats, addStock, updateStock, deleteStock, deleteTransaction, refreshPrices } = usePortfolio()
   const { toast, showToast } = useToast()
   const [activeTab, setActiveTab] = useState('summary')
   const [editingStock, setEditingStock] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [selectedStock, setSelectedStock] = useState(null)
 
   const handleAddStock = useCallback(async (stockData) => {
     if (editingStock) {
@@ -57,6 +58,31 @@ function App() {
     }
   }, [])
 
+  const handleSymbolClick = useCallback((stock) => {
+    setSelectedStock(stock)
+  }, [])
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedStock(null)
+  }, [])
+
+  const handleDeleteTransaction = useCallback((symbol, transactionId) => {
+    if (window.confirm('Are you sure you want to delete this transaction?')) {
+      deleteTransaction(symbol, transactionId, showToast)
+      // Update the selected stock to reflect changes
+      setSelectedStock(prev => {
+        if (!prev) return null
+        const updatedStock = stocks.find(s => s.symbol === symbol)
+        return updatedStock || null
+      })
+    }
+  }, [deleteTransaction, showToast, stocks])
+
+  // Get the latest version of selected stock from stocks array
+  const currentSelectedStock = selectedStock 
+    ? stocks.find(s => s.symbol === selectedStock.symbol) 
+    : null
+
   return (
     <div className="app-container">
       <Header stats={stats} />
@@ -78,6 +104,7 @@ function App() {
             isRefreshing={isRefreshing}
             editingStock={editingStock}
             onCancelEdit={handleCancelEdit}
+            onSymbolClick={handleSymbolClick}
           />
         )}
       </main>
@@ -89,6 +116,14 @@ function App() {
         type={toast.type}
         visible={toast.visible}
       />
+
+      {currentSelectedStock && (
+        <StockDetailModal
+          stock={currentSelectedStock}
+          onClose={handleCloseModal}
+          onDeleteTransaction={handleDeleteTransaction}
+        />
+      )}
     </div>
   )
 }

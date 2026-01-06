@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { formatNumber, formatCurrency, formatPercent } from '../utils/formatters'
 import { STOCK_CATEGORIES } from '../utils/constants'
 
-export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshing }) {
+export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshing, onSymbolClick }) {
   const [symbolFilter, setSymbolFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
 
@@ -143,7 +143,18 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
 
               return (
                 <tr key={stock.id}>
-                  <td className="symbol">{stock.symbol}</td>
+                  <td className="symbol">
+                    <button 
+                      className="symbol-link"
+                      onClick={() => onSymbolClick?.(stock)}
+                      title="View transaction history"
+                    >
+                      {stock.symbol}
+                      {stock.transactions?.length > 0 && (
+                        <span className="txn-count">{stock.transactions.length}</span>
+                      )}
+                    </button>
+                  </td>
                   <td className="category">
                     <span className={`category-badge ${stock.category || 'other'}`}>
                       {getCategoryLabel(stock.category)}

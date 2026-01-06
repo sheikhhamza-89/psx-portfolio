@@ -5,6 +5,7 @@ export { PositionsTab } from './PositionsTab'
 export { StockForm } from './StockForm'
 export { PortfolioTable } from './PortfolioTable'
 export { PortfolioCharts } from './PortfolioCharts'
+export { StockDetailModal } from './StockDetailModal'
 export { Toast } from './Toast'
 export { Footer } from './Footer'
 
