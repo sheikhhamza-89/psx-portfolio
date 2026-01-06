@@ -39,18 +39,24 @@ export function StockForm({ onSubmit, onSell, editingStock, onCancelEdit, stocks
 
   // Auto-populate category when symbol changes
   useEffect(() => {
-    if (transactionType === 'buy' && formData.symbol) {
-      const upperSymbol = formData.symbol.toUpperCase()
-      const mappedCategory = SYMBOL_CATEGORY_MAP[upperSymbol]
-      
-      if (mappedCategory) {
-        setFormData(prev => ({ ...prev, category: mappedCategory }))
-        setIsCategoryAutoPopulated(true)
-      } else {
-        // Only clear if it was auto-populated before
-        if (isCategoryAutoPopulated) {
-          setFormData(prev => ({ ...prev, category: '' }))
+    if (transactionType === 'buy') {
+      if (formData.symbol) {
+        const upperSymbol = formData.symbol.toUpperCase()
+        const mappedCategory = SYMBOL_CATEGORY_MAP[upperSymbol]
+        
+        if (mappedCategory) {
+          setFormData(prev => ({ ...prev, category: mappedCategory }))
+          setIsCategoryAutoPopulated(true)
+        } else {
+          // Only clear if it was auto-populated before
+          if (isCategoryAutoPopulated) {
+            setFormData(prev => ({ ...prev, category: '' }))
+          }
+          setIsCategoryAutoPopulated(false)
         }
+      } else {
+        // Symbol is empty - clear category
+        setFormData(prev => ({ ...prev, category: '' }))
         setIsCategoryAutoPopulated(false)
       }
     }
