@@ -301,7 +301,7 @@ body {
 /* Metrics Grid */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-md);
 }
 
@@ -341,6 +341,21 @@ body {
 
 .metric-card.loss-count {
   border-left: 3px solid var(--loss);
+}
+
+.metric-card.xirr {
+  border-left: 3px solid var(--accent-tertiary);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(255, 153, 64, 0.05) 100%);
+}
+
+.metric-card.xirr.gain {
+  border-left: 3px solid var(--gain);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(0, 229, 160, 0.05) 100%);
+}
+
+.metric-card.xirr.loss {
+  border-left: 3px solid var(--loss);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(255, 107, 107, 0.05) 100%);
 }
 
 .metric-label {
@@ -1022,8 +1037,8 @@ body {
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-xl);
-  margin-bottom: var(--space-xl);
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .chart-container {
@@ -1227,6 +1242,10 @@ body {
   .form-row {
     grid-template-columns: repeat(3, 1fr);
   }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 1024px) {
@@ -1320,6 +1339,10 @@ body {
   .tab-btn {
     padding: var(--space-sm) var(--space-md);
     font-size: 0.8rem;
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
   }
 }
 

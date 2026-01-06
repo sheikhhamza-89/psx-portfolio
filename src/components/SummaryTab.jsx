@@ -1,5 +1,8 @@
+import { useMemo } from 'react'
 import { formatCurrency, formatPercent } from '../utils/formatters'
+import { calculatePortfolioXIRR } from '../utils/xirr'
 import { PortfolioCharts } from './PortfolioCharts'
+import { STOCK_CATEGORIES } from '../utils/constants'
 
 export function SummaryTab({ stocks, stats }) {
   const { totalInvestment, currentValue, totalPnl, totalPnlPercent, isPositive } = stats
@@ -15,6 +18,16 @@ export function SummaryTab({ stocks, stats }) {
     return pnl < 0
   }).length
 
+  // Calculate XIRR
+  const xirr = useMemo(() => {
+    return calculatePortfolioXIRR(stocks)
+  }, [stocks])
+
+  // Count unique categories
+  const categoryCount = useMemo(() => {
+    return new Set(stocks.map(s => s.category).filter(Boolean)).size
+  }, [stocks])
+
   // Find best and worst performers
   const stocksWithPnl = stocks.map(s => {
     const investment = s.shares * s.purchasePrice
@@ -26,6 +39,12 @@ export function SummaryTab({ stocks, stats }) {
 
   const bestPerformer = stocksWithPnl[0]
   const worstPerformer = stocksWithPnl[stocksWithPnl.length - 1]
+
+  // Get category label
+  const getCategoryLabel = (value) => {
+    const cat = STOCK_CATEGORIES.find(c => c.value === value)
+    return cat ? cat.label : value || '—'
+  }
 
   return (
     <div className="summary-tab">
@@ -59,10 +78,18 @@ export function SummaryTab({ stocks, stats }) {
               </span>
             </div>
 
+            <div className={`metric-card xirr ${xirr !== null && xirr >= 0 ? 'gain' : 'loss'}`}>
+              <span className="metric-label">XIRR</span>
+              <span className="metric-value">
+                {xirr !== null ? `${xirr >= 0 ? '+' : ''}${xirr.toFixed(2)}%` : '—'}
+              </span>
+              <span className="metric-subvalue">annualized return</span>
+            </div>
+
             <div className="metric-card">
               <span className="metric-label">Holdings</span>
               <span className="metric-value">{stockCount}</span>
-              <span className="metric-subvalue">stocks</span>
+              <span className="metric-subvalue">{categoryCount} categories</span>
             </div>
 
             <div className="metric-card gain-count">
@@ -91,6 +118,9 @@ export function SummaryTab({ stocks, stats }) {
                     <div className="performer-header">
                       <span className="performer-badge">Best</span>
                       <span className="performer-symbol">{bestPerformer.symbol}</span>
+                      <span className={`category-badge ${bestPerformer.category || 'other'}`}>
+                        {getCategoryLabel(bestPerformer.category)}
+                      </span>
                     </div>
                     <div className="performer-stats">
                       <span className={`performer-pnl ${bestPerformer.pnl >= 0 ? 'positive' : 'negative'}`}>
@@ -108,6 +138,9 @@ export function SummaryTab({ stocks, stats }) {
                     <div className="performer-header">
                       <span className="performer-badge">Worst</span>
                       <span className="performer-symbol">{worstPerformer.symbol}</span>
+                      <span className={`category-badge ${worstPerformer.category || 'other'}`}>
+                        {getCategoryLabel(worstPerformer.category)}
+                      </span>
                     </div>
                     <div className="performer-stats">
                       <span className={`performer-pnl ${worstPerformer.pnl >= 0 ? 'positive' : 'negative'}`}>
@@ -130,4 +163,3 @@ export function SummaryTab({ stocks, stats }) {
     </div>
   )
 }
-

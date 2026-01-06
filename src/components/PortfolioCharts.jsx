@@ -1,4 +1,4 @@
-import { AllocationChart, PnLChart, PerformanceChart } from './charts'
+import { AllocationChart, CategoryChart, PnLChart, PerformanceChart } from './charts'
 
 export function PortfolioCharts({ stocks }) {
   if (stocks.length === 0) {
@@ -14,10 +14,13 @@ export function PortfolioCharts({ stocks }) {
       
       <div className="charts-grid">
         <AllocationChart stocks={stocks} />
-        <PnLChart stocks={stocks} />
+        <CategoryChart stocks={stocks} />
       </div>
       
-      <PerformanceChart stocks={stocks} />
+      <div className="charts-grid">
+        <PnLChart stocks={stocks} />
+        <PerformanceChart stocks={stocks} />
+      </div>
     </section>
   )
 }
