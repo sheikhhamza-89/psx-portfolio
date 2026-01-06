@@ -14,6 +14,7 @@ function App() {
       // Update existing stock
       await updateStock(editingStock.id, {
         symbol: stockData.symbol,
+        category: stockData.category,
         shares: stockData.shares,
         purchasePrice: stockData.purchasePrice,
         currentPrice: stockData.currentPrice || editingStock.currentPrice
