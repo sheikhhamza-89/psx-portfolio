@@ -3,7 +3,7 @@ import { Header, TabNavigation, SummaryTab, PositionsTab, StockDetailModal, Toas
 import { usePortfolio, useToast } from './hooks'
 
 function App() {
-  const { stocks, stats, addStock, updateStock, deleteStock, deleteTransaction, refreshPrices } = usePortfolio()
+  const { stocks, stats, addStock, sellStock, updateStock, deleteStock, deleteTransaction, refreshPrices } = usePortfolio()
   const { toast, showToast } = useToast()
   const [activeTab, setActiveTab] = useState('summary')
   const [editingStock, setEditingStock] = useState(null)
@@ -49,6 +49,10 @@ function App() {
   const handleCancelEdit = useCallback(() => {
     setEditingStock(null)
   }, [])
+
+  const handleSellStock = useCallback(async (sellData) => {
+    await sellStock(sellData, showToast)
+  }, [sellStock, showToast])
 
   const handleTabChange = useCallback((tab) => {
     setActiveTab(tab)
@@ -98,6 +102,7 @@ function App() {
           <PositionsTab
             stocks={stocks}
             onAddStock={handleAddStock}
+            onSell={handleSellStock}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onRefresh={handleRefresh}

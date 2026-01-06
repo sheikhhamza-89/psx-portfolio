@@ -3,7 +3,8 @@ import { PortfolioTable } from './PortfolioTable'
 
 export function PositionsTab({ 
   stocks, 
-  onAddStock, 
+  onAddStock,
+  onSell,
   onEdit, 
   onDelete, 
   onRefresh, 
@@ -16,8 +17,10 @@ export function PositionsTab({
     <div className="positions-tab">
       <StockForm 
         onSubmit={onAddStock}
+        onSell={onSell}
         editingStock={editingStock}
         onCancelEdit={onCancelEdit}
+        stocks={stocks}
       />
       
       <PortfolioTable 

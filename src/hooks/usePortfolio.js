@@ -109,6 +109,60 @@ export function usePortfolio() {
   }, [setStocks])
 
   /**
+   * Sell shares of a stock
+   */
+  const sellStock = useCallback(async (sellData, onToast) => {
+    const symbol = sellData.symbol.toUpperCase().trim()
+    
+    setStocks(prev => {
+      const stockIndex = prev.findIndex(s => s.symbol === symbol)
+      if (stockIndex === -1) {
+        onToast?.(`Stock ${symbol} not found in portfolio`, 'error')
+        return prev
+      }
+
+      const stock = prev[stockIndex]
+      
+      if (sellData.shares > stock.shares) {
+        onToast?.(`Cannot sell more than ${stock.shares} shares`, 'error')
+        return prev
+      }
+
+      // Create sell transaction
+      const sellTransaction = {
+        id: Date.now().toString(),
+        type: 'sell',
+        shares: sellData.shares,
+        price: sellData.price,
+        date: new Date().toISOString()
+      }
+
+      const existingTransactions = stock.transactions || []
+      const allTransactions = [...existingTransactions, sellTransaction]
+
+      // Calculate new totals
+      const remainingShares = stock.shares - sellData.shares
+
+      // If all shares sold, remove the stock
+      if (remainingShares <= 0) {
+        onToast?.(`Sold all ${symbol} shares`, 'success')
+        return prev.filter(s => s.symbol !== symbol)
+      }
+
+      // Update stock with remaining shares
+      const updated = [...prev]
+      updated[stockIndex] = {
+        ...stock,
+        shares: remainingShares,
+        transactions: allTransactions
+      }
+
+      onToast?.(`Sold ${sellData.shares} shares of ${symbol}`, 'success')
+      return updated
+    })
+  }, [setStocks])
+
+  /**
    * Delete a specific transaction from a stock
    */
   const deleteTransaction = useCallback((symbol, transactionId, onToast) => {
@@ -214,6 +268,7 @@ export function usePortfolio() {
     stocks,
     stats,
     addStock,
+    sellStock,
     updateStock,
     deleteStock,
     deleteTransaction,
