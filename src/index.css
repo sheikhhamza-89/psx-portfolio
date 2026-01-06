@@ -114,7 +114,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-md);
   box-shadow: var(--shadow-md);
 }
 
@@ -197,11 +197,292 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Tab Navigation
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tab-navigation {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+  background: var(--bg-surface);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-medium);
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-icon {
+  font-size: 1.1rem;
+}
+
+.tab-label {
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Main Content
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .main-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Summary Tab
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.summary-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.empty-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-xl);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.empty-summary .empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-lg);
+  opacity: 0.5;
+}
+
+.empty-summary h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-summary p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.metric-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card.primary {
+  border-left: 3px solid var(--accent-secondary);
+}
+
+.metric-card.gain {
+  border-left: 3px solid var(--gain);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(0, 229, 160, 0.05) 100%);
+}
+
+.metric-card.loss {
+  border-left: 3px solid var(--loss);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(255, 107, 107, 0.05) 100%);
+}
+
+.metric-card.gain-count {
+  border-left: 3px solid var(--gain);
+}
+
+.metric-card.loss-count {
+  border-left: 3px solid var(--loss);
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.metric-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-card.gain .metric-value {
+  color: var(--gain);
+}
+
+.metric-card.loss .metric-value {
+  color: var(--loss);
+}
+
+.metric-subvalue {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Performers Section */
+.performers-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.section-subtitle {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.subtitle-icon {
+  color: var(--accent-tertiary);
+}
+
+.performers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg);
+}
+
+.performer-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.performer-card.best {
+  border-top: 2px solid var(--gain);
+}
+
+.performer-card.worst {
+  border-top: 2px solid var(--loss);
+}
+
+.performer-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.performer-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+.performer-card.best .performer-badge {
+  background: var(--gain-bg);
+  color: var(--gain);
+}
+
+.performer-card.worst .performer-badge {
+  background: var(--loss-bg);
+  color: var(--loss);
+}
+
+.performer-symbol {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.performer-stats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.performer-pnl {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.performer-pnl.positive {
+  color: var(--gain);
+}
+
+.performer-pnl.negative {
+  color: var(--loss);
+}
+
+.performer-percent {
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.performer-percent.positive {
+  background: var(--gain-bg);
+  color: var(--gain);
+}
+
+.performer-percent.negative {
+  background: var(--loss-bg);
+  color: var(--loss);
+}
+
+/* Positions Tab */
+.positions-tab {
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
@@ -889,6 +1170,19 @@ body {
   .chart-center-label {
     display: none;
   }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .performers-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tab-btn {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -908,6 +1202,22 @@ body {
   
   .form-actions {
     flex-direction: column;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metric-value {
+    font-size: 1.2rem;
+  }
+  
+  .tab-label {
+    display: none;
+  }
+  
+  .tab-icon {
+    font-size: 1.3rem;
   }
 }
 

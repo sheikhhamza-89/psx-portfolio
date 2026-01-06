@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react'
-import { Header, StockForm, PortfolioTable, PortfolioCharts, Toast, Footer } from './components'
+import { Header, TabNavigation, SummaryTab, PositionsTab, Toast, Footer } from './components'
 import { usePortfolio, useToast } from './hooks'
 
 function App() {
   const { stocks, stats, addStock, updateStock, deleteStock, refreshPrices } = usePortfolio()
   const { toast, showToast } = useToast()
+  const [activeTab, setActiveTab] = useState('summary')
   const [editingStock, setEditingStock] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -47,26 +48,37 @@ function App() {
     setEditingStock(null)
   }, [])
 
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab)
+    // Reset editing state when switching tabs
+    if (tab === 'summary') {
+      setEditingStock(null)
+    }
+  }, [])
+
   return (
     <div className="app-container">
       <Header stats={stats} />
       
+      <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+      
       <main className="main-content">
-        <StockForm 
-          onSubmit={handleAddStock}
-          editingStock={editingStock}
-          onCancelEdit={handleCancelEdit}
-        />
+        {activeTab === 'summary' && (
+          <SummaryTab stocks={stocks} stats={stats} />
+        )}
         
-        <PortfolioTable 
-          stocks={stocks}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-        />
-
-        <PortfolioCharts stocks={stocks} />
+        {activeTab === 'positions' && (
+          <PositionsTab
+            stocks={stocks}
+            onAddStock={handleAddStock}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            editingStock={editingStock}
+            onCancelEdit={handleCancelEdit}
+          />
+        )}
       </main>
 
       <Footer />
@@ -81,4 +93,3 @@ function App() {
 }
 
 export default App
-
