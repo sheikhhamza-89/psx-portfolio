@@ -1,14 +1,30 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { formatCurrency, formatPercent } from '../utils/formatters'
+import * as supabaseService from '../services/supabaseService'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 export function StockFocusTab({ stocks }) {
   const [selectedSymbol, setSelectedSymbol] = useState('')
+  const [stockDividends, setStockDividends] = useState(0)
 
   // Get selected stock data
   const selectedStock = useMemo(() => {
     if (!selectedSymbol) return null
     return stocks.find(s => s.symbol === selectedSymbol)
   }, [selectedSymbol, stocks])
+
+  // Fetch dividends for selected stock
+  useEffect(() => {
+    async function fetchDividends() {
+      if (selectedSymbol && isSupabaseConfigured()) {
+        const total = await supabaseService.getTotalDividendsBySymbol(selectedSymbol)
+        setStockDividends(total)
+      } else {
+        setStockDividends(0)
+      }
+    }
+    fetchDividends()
+  }, [selectedSymbol])
 
   // Calculate earnings for selected stock
   const earnings = useMemo(() => {
@@ -44,8 +60,8 @@ export function StockFocusTab({ stocks }) {
       }
     })
 
-    // Dividend (placeholder - you can add dividend tracking later)
-    const realizedDividend = 0
+    // Use actual dividend data from Supabase
+    const realizedDividend = stockDividends
 
     // Overall calculations
     const overallWithoutDividend = gainLossCurrentHolding + realizedCapitalGain
@@ -79,7 +95,7 @@ export function StockFocusTab({ stocks }) {
       totalSoldShares,
       totalSoldValue
     }
-  }, [selectedStock])
+  }, [selectedStock, stockDividends])
 
   if (stocks.length === 0) {
     return (

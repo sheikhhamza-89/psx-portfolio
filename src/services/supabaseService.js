@@ -325,6 +325,134 @@ export async function setCachedPrice(symbol, priceData) {
 }
 
 // ============================================================================
+// DIVIDENDS OPERATIONS
+// ============================================================================
+
+/**
+ * Get all dividends
+ */
+export async function getDividends() {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('dividends')
+    .select('*')
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching dividends:', error)
+    return null
+  }
+
+  return data.map(div => ({
+    id: div.id,
+    stockId: div.stock_id,
+    symbol: div.symbol,
+    amount: parseFloat(div.amount),
+    date: div.date,
+    notes: div.notes
+  }))
+}
+
+/**
+ * Get dividends for a specific symbol
+ */
+export async function getDividendsBySymbol(symbol) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('dividends')
+    .select('*')
+    .eq('symbol', symbol.toUpperCase())
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching dividends for symbol:', error)
+    return null
+  }
+
+  return data.map(div => ({
+    id: div.id,
+    stockId: div.stock_id,
+    symbol: div.symbol,
+    amount: parseFloat(div.amount),
+    date: div.date,
+    notes: div.notes
+  }))
+}
+
+/**
+ * Add a dividend
+ */
+export async function addDividend(dividendData) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData?.user?.id || null
+
+  const { data, error } = await supabase
+    .from('dividends')
+    .insert({
+      stock_id: dividendData.stockId,
+      symbol: dividendData.symbol.toUpperCase(),
+      amount: dividendData.amount,
+      date: dividendData.date || new Date().toISOString(),
+      notes: dividendData.notes || null,
+      user_id: userId
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding dividend:', error)
+    return null
+  }
+
+  return {
+    id: data.id,
+    stockId: data.stock_id,
+    symbol: data.symbol,
+    amount: parseFloat(data.amount),
+    date: data.date,
+    notes: data.notes
+  }
+}
+
+/**
+ * Delete a dividend
+ */
+export async function deleteDividend(dividendId) {
+  if (!isSupabaseConfigured()) return false
+
+  const { error } = await supabase
+    .from('dividends')
+    .delete()
+    .eq('id', dividendId)
+
+  if (error) {
+    console.error('Error deleting dividend:', error)
+    return false
+  }
+  return true
+}
+
+/**
+ * Get total dividends for a symbol
+ */
+export async function getTotalDividendsBySymbol(symbol) {
+  if (!isSupabaseConfigured()) return 0
+
+  const { data, error } = await supabase
+    .from('dividends')
+    .select('amount')
+    .eq('symbol', symbol.toUpperCase())
+
+  if (error || !data) return 0
+
+  return data.reduce((sum, div) => sum + parseFloat(div.amount), 0)
+}
+
+// ============================================================================
 // UTILITY
 // ============================================================================
 

@@ -2399,3 +2399,157 @@ body {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dividends Tab
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dividends-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Dividend Form */
+.dividend-form-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.dividend-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.dividend-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Dividend Summary */
+.dividend-summary-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.dividend-total-card {
+  background: linear-gradient(135deg, #28a745 0%, #1e7b34 100%);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.dividend-total-card .total-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dividend-total-card .total-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dividend-by-symbol h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.symbol-dividends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-sm);
+}
+
+.symbol-dividend-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.symbol-dividend-card .symbol-name {
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.symbol-dividend-card .symbol-amount {
+  font-weight: 600;
+  color: var(--gain);
+}
+
+/* Dividend History */
+.dividend-history-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.dividends-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dividends-table th {
+  background: var(--bg-elevated);
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.dividends-table td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.85rem;
+}
+
+.dividends-table .symbol-cell {
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.dividends-table .amount-cell {
+  font-weight: 600;
+}
+
+.dividends-table .notes-cell {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.dividends-table .actions {
+  text-align: center;
+}
+
+.loading-state {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--text-muted);
+}
+

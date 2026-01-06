@@ -3,7 +3,8 @@ export function TabNavigation({ activeTab, onTabChange }) {
     { id: 'summary', label: 'Summary', icon: '◈' },
     { id: 'daily', label: 'Daily', icon: '◐' },
     { id: 'positions', label: 'Positions', icon: '◇' },
-    { id: 'focus', label: 'Stock in Focus', icon: '🔍' }
+    { id: 'focus', label: 'Stock in Focus', icon: '🔍' },
+    { id: 'dividends', label: 'Dividends', icon: '💰' }
   ]
 
   return (

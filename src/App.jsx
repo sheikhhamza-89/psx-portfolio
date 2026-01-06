@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockFocusTab, StockDetailModal, Toast, Footer } from './components'
+import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockFocusTab, DividendsTab, StockDetailModal, Toast, Footer } from './components'
 import { useSupabasePortfolio, useToast } from './hooks'
 
 function App() {
@@ -142,6 +142,10 @@ function App() {
 
         {activeTab === 'focus' && (
           <StockFocusTab stocks={stocks} />
+        )}
+
+        {activeTab === 'dividends' && (
+          <DividendsTab stocks={stocks} />
         )}
       </main>
 
