@@ -1,6 +1,7 @@
 export { Header } from './Header'
 export { TabNavigation } from './TabNavigation'
 export { SummaryTab } from './SummaryTab'
+export { DailyTab } from './DailyTab'
 export { PositionsTab } from './PositionsTab'
 export { StockForm } from './StockForm'
 export { PortfolioTable } from './PortfolioTable'

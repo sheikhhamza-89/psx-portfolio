@@ -1,6 +1,7 @@
 export function TabNavigation({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'summary', label: 'Summary', icon: '◈' },
+    { id: 'daily', label: 'Daily', icon: '◐' },
     { id: 'positions', label: 'Positions', icon: '◇' }
   ]
 

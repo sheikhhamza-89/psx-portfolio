@@ -1,11 +1,11 @@
 import { CORS_PROXIES, PSX_BASE_URL } from '../utils/constants'
 
 /**
- * Fetches stock price from PSX website using CORS proxy
+ * Fetches stock price and LDP from PSX website using CORS proxy
  * @param {string} symbol - Stock symbol (e.g., 'OGDC', 'HBL')
- * @returns {Promise<number|null>} The stock price or null if fetch fails
+ * @returns {Promise<{price: number|null, ldp: number|null}>} The stock prices
  */
-export async function fetchPriceFromPSX(symbol) {
+export async function fetchPriceDataFromPSX(symbol) {
   const normalizedSymbol = symbol.toUpperCase().trim()
   const psxUrl = `${PSX_BASE_URL}${normalizedSymbol}`
 
@@ -23,26 +23,26 @@ export async function fetchPriceFromPSX(symbol) {
 
       if (response.ok) {
         const html = await response.text()
+        let price = null
+        let ldp = null
 
         // Extract Close Price using regex from PSX page
         const closeMatch = html.match(/quote__close[^>]*>\s*Rs\.?\s*([\d,]+\.?\d*)/)
-
         if (closeMatch) {
-          const price = parseFloat(closeMatch[1].replace(/,/g, ''))
-          if (price > 0) {
-            console.log(`✅ Fetched ${normalizedSymbol} price from PSX: ${price}`)
-            return price
-          }
+          price = parseFloat(closeMatch[1].replace(/,/g, ''))
+          if (price <= 0) price = null
         }
 
-        // Fallback: Try to extract LDCP (Last Day Closing Price)
+        // Extract LDCP (Last Day Closing Price)
         const ldcpMatch = html.match(/LDCP<\/div>\s*<div class="stats_value">([\d,\.]+)<\/div>/)
         if (ldcpMatch) {
-          const ldcp = parseFloat(ldcpMatch[1].replace(/,/g, ''))
-          if (ldcp > 0) {
-            console.log(`✅ Fetched ${normalizedSymbol} LDCP from PSX: ${ldcp}`)
-            return ldcp
-          }
+          ldp = parseFloat(ldcpMatch[1].replace(/,/g, ''))
+          if (ldp <= 0) ldp = null
+        }
+
+        if (price !== null || ldp !== null) {
+          console.log(`✅ Fetched ${normalizedSymbol} - Price: ${price}, LDP: ${ldp}`)
+          return { price, ldp }
         }
       }
     } catch (error) {
@@ -50,7 +50,17 @@ export async function fetchPriceFromPSX(symbol) {
     }
   }
 
-  return null
+  return { price: null, ldp: null }
+}
+
+/**
+ * Fetches stock price from PSX website using CORS proxy
+ * @param {string} symbol - Stock symbol (e.g., 'OGDC', 'HBL')
+ * @returns {Promise<number|null>} The stock price or null if fetch fails
+ */
+export async function fetchPriceFromPSX(symbol) {
+  const data = await fetchPriceDataFromPSX(symbol)
+  return data.price || data.ldp
 }
 
 /**
@@ -109,3 +119,24 @@ export async function fetchStockPrice(symbol) {
   return price
 }
 
+/**
+ * Fetches complete stock data including price and LDP
+ * @param {string} symbol - Stock symbol
+ * @returns {Promise<{price: number|null, ldp: number|null}>} Stock data
+ */
+export async function fetchStockData(symbol) {
+  // Try PSX first
+  const psxData = await fetchPriceDataFromPSX(symbol)
+  
+  if (psxData.price !== null) {
+    return psxData
+  }
+
+  // Fallback to Yahoo Finance for price only
+  const yahooPrice = await fetchPriceFromYahoo(symbol)
+  
+  return {
+    price: yahooPrice || psxData.ldp,
+    ldp: psxData.ldp
+  }
+}

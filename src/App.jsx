@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Header, TabNavigation, SummaryTab, PositionsTab, StockDetailModal, Toast, Footer } from './components'
+import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockDetailModal, Toast, Footer } from './components'
 import { usePortfolio, useToast } from './hooks'
 
 function App() {
@@ -96,6 +96,10 @@ function App() {
       <main className="main-content">
         {activeTab === 'summary' && (
           <SummaryTab stocks={stocks} stats={stats} />
+        )}
+
+        {activeTab === 'daily' && (
+          <DailyTab stocks={stocks} />
         )}
         
         {activeTab === 'positions' && (

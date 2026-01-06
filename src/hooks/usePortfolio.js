@@ -8,7 +8,7 @@ import { STORAGE_KEY } from '../utils/constants'
  */
 export function usePortfolio() {
   const [stocks, setStocks] = useLocalStorage(STORAGE_KEY, [])
-  const { getPrice } = usePriceCache()
+  const { getPrice, getStockData } = usePriceCache()
 
   /**
    * Add a new stock to portfolio (with transaction history)
@@ -203,7 +203,7 @@ export function usePortfolio() {
   }, [setStocks])
 
   /**
-   * Refresh all stock prices
+   * Refresh all stock prices and LDP
    */
   const refreshPrices = useCallback(async (onToast) => {
     if (stocks.length === 0) {
@@ -217,10 +217,14 @@ export function usePortfolio() {
 
     for (let i = 0; i < updatedStocks.length; i++) {
       const stock = updatedStocks[i]
-      const price = await getPrice(stock.symbol)
+      const data = await getStockData(stock.symbol)
       
-      if (price !== null) {
-        updatedStocks[i] = { ...stock, currentPrice: price }
+      if (data.price !== null) {
+        updatedStocks[i] = { 
+          ...stock, 
+          currentPrice: data.price,
+          ldp: data.ldp || stock.ldp || data.price // Keep previous LDP if not available
+        }
         updated++
       } else {
         failed++
@@ -236,7 +240,7 @@ export function usePortfolio() {
     } else {
       onToast?.('Could not fetch prices. Enter manually or try again later.', 'error')
     }
-  }, [stocks, getPrice, setStocks])
+  }, [stocks, getStockData, setStocks])
 
   /**
    * Calculate portfolio statistics
