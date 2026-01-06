@@ -1,6 +1,44 @@
+import { useState, useMemo } from 'react'
 import { formatNumber, formatCurrency, formatPercent } from '../utils/formatters'
+import { STOCK_CATEGORIES } from '../utils/constants'
 
 export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshing }) {
+  const [symbolFilter, setSymbolFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+
+  // Get unique symbols for dropdown
+  const uniqueSymbols = useMemo(() => {
+    return [...new Set(stocks.map(s => s.symbol))].sort()
+  }, [stocks])
+
+  // Get unique categories that exist in portfolio
+  const usedCategories = useMemo(() => {
+    const catValues = [...new Set(stocks.map(s => s.category).filter(Boolean))]
+    return STOCK_CATEGORIES.filter(cat => catValues.includes(cat.value))
+  }, [stocks])
+
+  // Filter stocks based on selected filters
+  const filteredStocks = useMemo(() => {
+    return stocks.filter(stock => {
+      const matchesSymbol = !symbolFilter || stock.symbol === symbolFilter
+      const matchesCategory = !categoryFilter || stock.category === categoryFilter
+      return matchesSymbol && matchesCategory
+    })
+  }, [stocks, symbolFilter, categoryFilter])
+
+  // Get category label from value
+  const getCategoryLabel = (value) => {
+    const cat = STOCK_CATEGORIES.find(c => c.value === value)
+    return cat ? cat.label : value || '—'
+  }
+
+  const clearFilters = () => {
+    setSymbolFilter('')
+    setCategoryFilter('')
+  }
+
+  const hasActiveFilters = symbolFilter || categoryFilter
+
   if (stocks.length === 0) {
     return (
       <section className="portfolio-section">
@@ -38,11 +76,53 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
         </button>
       </div>
 
+      {/* Filter Section */}
+      <div className="filter-section">
+        <div className="filter-group">
+          <label htmlFor="symbol-filter">Filter by Symbol</label>
+          <select
+            id="symbol-filter"
+            value={symbolFilter}
+            onChange={(e) => setSymbolFilter(e.target.value)}
+          >
+            <option value="">All Symbols</option>
+            {uniqueSymbols.map(symbol => (
+              <option key={symbol} value={symbol}>{symbol}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="category-filter">Filter by Category</label>
+          <select
+            id="category-filter"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {usedCategories.map(cat => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {hasActiveFilters && (
+          <button className="btn btn-clear-filter" onClick={clearFilters}>
+            ✕ Clear Filters
+          </button>
+        )}
+
+        <div className="filter-info">
+          Showing {filteredStocks.length} of {stocks.length} positions
+        </div>
+      </div>
+
       <div className="table-container">
         <table className="portfolio-table">
           <thead>
             <tr>
               <th>Symbol</th>
+              <th>Category</th>
               <th>Shares</th>
               <th>Avg. Cost</th>
               <th>Today's Price</th>
@@ -54,7 +134,7 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
             </tr>
           </thead>
           <tbody>
-            {stocks.map(stock => {
+            {filteredStocks.map(stock => {
               const investment = stock.shares * stock.purchasePrice
               const currentValue = stock.shares * (stock.currentPrice || stock.purchasePrice)
               const pnl = currentValue - investment
@@ -64,6 +144,11 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
               return (
                 <tr key={stock.id}>
                   <td className="symbol">{stock.symbol}</td>
+                  <td className="category">
+                    <span className={`category-badge ${stock.category || 'other'}`}>
+                      {getCategoryLabel(stock.category)}
+                    </span>
+                  </td>
                   <td className="shares">{formatNumber(stock.shares)}</td>
                   <td className="price">{formatCurrency(stock.purchasePrice)}</td>
                   <td className="current-price">
@@ -104,4 +189,3 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
     </section>
   )
 }
-

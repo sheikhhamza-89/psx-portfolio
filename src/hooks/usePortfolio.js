@@ -31,6 +31,7 @@ export function usePortfolio() {
     const newStock = {
       id: Date.now().toString(),
       symbol,
+      category: stockData.category,
       shares: stockData.shares,
       purchasePrice: stockData.purchasePrice,
       currentPrice,
@@ -49,6 +50,7 @@ export function usePortfolio() {
         const updated = [...prev]
         updated[existingIndex] = {
           ...existing,
+          category: newStock.category || existing.category,
           shares: totalShares,
           purchasePrice: parseFloat((totalCost / totalShares).toFixed(2)),
           currentPrice: newStock.currentPrice

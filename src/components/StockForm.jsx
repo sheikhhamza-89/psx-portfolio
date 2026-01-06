@@ -1,22 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { STOCK_CATEGORIES } from '../utils/constants'
 
 export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
   const [formData, setFormData] = useState({
-    symbol: editingStock?.symbol || '',
-    shares: editingStock?.shares || '',
-    purchasePrice: editingStock?.purchasePrice || '',
-    currentPrice: editingStock?.currentPrice || ''
+    symbol: '',
+    category: '',
+    shares: '',
+    purchasePrice: '',
+    currentPrice: ''
   })
   const [isLoading, setIsLoading] = useState(false)
 
   // Reset form when editingStock changes
-  useState(() => {
+  useEffect(() => {
     if (editingStock) {
       setFormData({
         symbol: editingStock.symbol,
+        category: editingStock.category || '',
         shares: editingStock.shares,
         purchasePrice: editingStock.purchasePrice,
         currentPrice: editingStock.currentPrice || ''
+      })
+    } else {
+      setFormData({
+        symbol: '',
+        category: '',
+        shares: '',
+        purchasePrice: '',
+        currentPrice: ''
       })
     }
   }, [editingStock])
@@ -32,7 +43,7 @@ export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!formData.symbol || !formData.shares || !formData.purchasePrice) {
+    if (!formData.symbol || !formData.shares || !formData.purchasePrice || !formData.category) {
       return
     }
 
@@ -40,6 +51,7 @@ export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
     
     await onSubmit({
       symbol: formData.symbol,
+      category: formData.category,
       shares: parseFloat(formData.shares),
       purchasePrice: parseFloat(formData.purchasePrice),
       currentPrice: formData.currentPrice ? parseFloat(formData.currentPrice) : null
@@ -50,6 +62,7 @@ export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
     // Reset form
     setFormData({
       symbol: '',
+      category: '',
       shares: '',
       purchasePrice: '',
       currentPrice: ''
@@ -59,6 +72,7 @@ export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
   const handleCancel = () => {
     setFormData({
       symbol: '',
+      category: '',
       shares: '',
       purchasePrice: '',
       currentPrice: ''
@@ -89,6 +103,24 @@ export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
               required
               autoComplete="off"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="category">Category</label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select category...</option>
+              {STOCK_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div className="form-group">
@@ -161,4 +193,3 @@ export function StockForm({ onSubmit, editingStock, onCancelEdit }) {
     </section>
   )
 }
-

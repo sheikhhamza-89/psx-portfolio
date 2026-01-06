@@ -5,6 +5,28 @@ export const PRICE_CACHE_KEY = 'psx_price_cache'
 // Cache duration in milliseconds (15 minutes)
 export const CACHE_DURATION = 15 * 60 * 1000
 
+// Stock categories for PSX
+export const STOCK_CATEGORIES = [
+  { value: 'oil_gas', label: 'Oil & Gas' },
+  { value: 'banking', label: 'Banking' },
+  { value: 'cement', label: 'Cement' },
+  { value: 'fertilizer', label: 'Fertilizer' },
+  { value: 'power', label: 'Power & Energy' },
+  { value: 'steel', label: 'Steel' },
+  { value: 'technology', label: 'Technology' },
+  { value: 'pharma', label: 'Pharmaceutical' },
+  { value: 'fmcg', label: 'FMCG' },
+  { value: 'refinery', label: 'Refinery' },
+  { value: 'reit', label: 'REIT' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'textile', label: 'Textile' },
+  { value: 'automobile', label: 'Automobile' },
+  { value: 'chemical', label: 'Chemical' },
+  { value: 'food', label: 'Food & Beverages' },
+  { value: 'telecom', label: 'Telecom' },
+  { value: 'other', label: 'Other' }
+]
+
 // Common PSX stock symbols for validation hints
 export const COMMON_SYMBOLS = [
   'OGDC', 'PPL', 'PSO', 'HBL', 'UBL', 'MCB', 'NBP', 'BAHL', 'MEBL',
