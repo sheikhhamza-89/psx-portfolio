@@ -3,15 +3,31 @@ import { formatCurrency, formatPercent } from '../utils/formatters'
 import * as supabaseService from '../services/supabaseService'
 import { isSupabaseConfigured } from '../lib/supabase'
 
-export function StockFocusTab({ stocks }) {
+export function StockFocusTab({ stocks, closedPositions = [] }) {
   const [selectedSymbol, setSelectedSymbol] = useState('')
   const [stockDividends, setStockDividends] = useState(0)
 
-  // Get selected stock data
+  // Combine active and closed positions for selection
+  const allPositions = useMemo(() => {
+    const active = stocks.map(s => ({ ...s, isClosed: false }))
+    const closed = closedPositions.map(p => ({
+      symbol: p.symbol,
+      shares: 0,
+      purchasePrice: p.avgBuyPrice,
+      currentPrice: p.avgSellPrice,
+      category: 'Closed',
+      isClosed: true,
+      closedData: p,
+      transactions: [...(p.buyTransactions || []), ...(p.sellTransactions || [])]
+    }))
+    return [...active, ...closed]
+  }, [stocks, closedPositions])
+
+  // Get selected stock data (from active or closed)
   const selectedStock = useMemo(() => {
     if (!selectedSymbol) return null
-    return stocks.find(s => s.symbol === selectedSymbol)
-  }, [selectedSymbol, stocks])
+    return allPositions.find(s => s.symbol === selectedSymbol)
+  }, [selectedSymbol, allPositions])
 
   // Fetch dividends for selected stock
   useEffect(() => {
@@ -30,7 +46,43 @@ export function StockFocusTab({ stocks }) {
   const earnings = useMemo(() => {
     if (!selectedStock) return null
 
-    const { shares, purchasePrice, currentPrice, ldp, transactions = [] } = selectedStock
+    // Handle closed positions differently
+    if (selectedStock.isClosed && selectedStock.closedData) {
+      const closedData = selectedStock.closedData
+      const realizedDividend = stockDividends
+      const realizedCapitalGain = closedData.realizedPnl
+      const totalInvested = closedData.totalBoughtAmount
+
+      return {
+        // Unrealized (none for closed positions)
+        gainLossToday: 0,
+        gainLossTodayPercent: 0,
+        gainLossCurrentHolding: 0,
+        gainLossCurrentHoldingPercent: 0,
+        // Realized
+        realizedDividend,
+        realizedCapitalGain,
+        // Overall
+        overallWithoutDividend: realizedCapitalGain,
+        overallPercentWithoutDividend: closedData.pnlPercent,
+        overallWithDividend: realizedCapitalGain + realizedDividend,
+        overallPercentWithDividend: totalInvested > 0 
+          ? ((realizedCapitalGain + realizedDividend) / totalInvested) * 100 
+          : 0,
+        // Additional info for closed positions
+        currentHoldingValue: 0,
+        currentHoldingCost: 0,
+        totalSoldShares: closedData.totalSharesSold,
+        totalSoldValue: closedData.totalSoldAmount,
+        totalBoughtShares: closedData.totalSharesBought,
+        totalBoughtAmount: closedData.totalBoughtAmount,
+        avgBuyPrice: closedData.avgBuyPrice,
+        avgSellPrice: closedData.avgSellPrice,
+        isClosed: true
+      }
+    }
+
+    const { shares, purchasePrice, currentPrice, ldcp, transactions = [] } = selectedStock
     const price = currentPrice || purchasePrice
 
     // Unrealized Gain/Loss
@@ -41,9 +93,9 @@ export function StockFocusTab({ stocks }) {
       ? (gainLossCurrentHolding / currentHoldingCost) * 100 
       : 0
 
-    // Gain/Loss Today (based on LDP)
-    const gainLossToday = ldp && price ? (price - ldp) * shares : 0
-    const gainLossTodayPercent = ldp && ldp > 0 ? ((price - ldp) / ldp) * 100 : 0
+    // Gain/Loss Today (based on LDCP)
+    const gainLossToday = ldcp && price ? (price - ldcp) * shares : 0
+    const gainLossTodayPercent = ldcp && ldcp > 0 ? ((price - ldcp) / ldcp) * 100 : 0
 
     // Realized Gain/Loss from sell transactions
     let realizedCapitalGain = 0
@@ -93,17 +145,18 @@ export function StockFocusTab({ stocks }) {
       currentHoldingValue,
       currentHoldingCost,
       totalSoldShares,
-      totalSoldValue
+      totalSoldValue,
+      isClosed: false
     }
   }, [selectedStock, stockDividends])
 
-  if (stocks.length === 0) {
+  if (stocks.length === 0 && closedPositions.length === 0) {
     return (
       <div className="stock-focus-tab">
         <div className="empty-summary">
           <span className="empty-icon">🔍</span>
           <h3>No stocks to analyze</h3>
-          <p>Add stocks in the Positions tab first</p>
+          <p>Add stocks in the Active Positions tab first</p>
         </div>
       </div>
     )
@@ -120,11 +173,24 @@ export function StockFocusTab({ stocks }) {
           onChange={(e) => setSelectedSymbol(e.target.value)}
         >
           <option value="">-- Choose a Stock --</option>
-          {stocks.map(stock => (
-            <option key={stock.symbol} value={stock.symbol}>
-              {stock.symbol} - {stock.category} ({stock.shares} shares)
-            </option>
-          ))}
+          {stocks.length > 0 && (
+            <optgroup label="Active Positions">
+              {stocks.map(stock => (
+                <option key={stock.symbol} value={stock.symbol}>
+                  {stock.symbol} - {stock.category} ({stock.shares} shares)
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {closedPositions.length > 0 && (
+            <optgroup label="Closed Positions">
+              {closedPositions.map(position => (
+                <option key={`closed-${position.symbol}`} value={position.symbol}>
+                  {position.symbol} - Closed ({position.totalSharesBought} shares traded)
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
 
@@ -132,14 +198,23 @@ export function StockFocusTab({ stocks }) {
         <>
           {/* Stock Header */}
           <div className="focus-header">
-            <h2 className="focus-symbol">{selectedStock.symbol}</h2>
-            <span className="focus-category">{selectedStock.category}</span>
+            <h2 className="focus-symbol">
+              {selectedStock.symbol}
+              {selectedStock.isClosed && <span className="closed-badge">CLOSED</span>}
+            </h2>
+            <span className="focus-category">{selectedStock.isClosed ? 'Closed Position' : selectedStock.category}</span>
             <div className="focus-price">
-              <span className="current-price">{formatCurrency(selectedStock.currentPrice || selectedStock.purchasePrice)}</span>
-              {selectedStock.ldp && (
-                <span className={`price-change ${earnings.gainLossToday >= 0 ? 'positive' : 'negative'}`}>
-                  {earnings.gainLossToday >= 0 ? '▲' : '▼'} {formatPercent(Math.abs(earnings.gainLossTodayPercent))}
-                </span>
+              {selectedStock.isClosed ? (
+                <span className="closed-status">Position Fully Sold</span>
+              ) : (
+                <>
+                  <span className="current-price">{formatCurrency(selectedStock.currentPrice || selectedStock.purchasePrice)}</span>
+                  {selectedStock.ldcp && (
+                    <span className={`price-change ${earnings.gainLossToday >= 0 ? 'positive' : 'negative'}`}>
+                      {earnings.gainLossToday >= 0 ? '▲' : '▼'} {formatPercent(Math.abs(earnings.gainLossTodayPercent))}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -228,32 +303,63 @@ export function StockFocusTab({ stocks }) {
 
             {/* Position Details */}
             <div className="position-details">
-              <h4>Position Details</h4>
+              <h4>{earnings.isClosed ? 'Closed Position Details' : 'Position Details'}</h4>
               <div className="details-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Shares Held</span>
-                  <span className="detail-value">{selectedStock.shares.toLocaleString()}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Avg. Cost</span>
-                  <span className="detail-value">{formatCurrency(selectedStock.purchasePrice)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Current Price</span>
-                  <span className="detail-value">{formatCurrency(selectedStock.currentPrice || selectedStock.purchasePrice)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Total Cost</span>
-                  <span className="detail-value">{formatCurrency(earnings.currentHoldingCost)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Current Value</span>
-                  <span className="detail-value">{formatCurrency(earnings.currentHoldingValue)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Shares Sold</span>
-                  <span className="detail-value">{earnings.totalSoldShares.toLocaleString()}</span>
-                </div>
+                {earnings.isClosed ? (
+                  <>
+                    <div className="detail-item">
+                      <span className="detail-label">Total Shares Bought</span>
+                      <span className="detail-value">{earnings.totalBoughtShares?.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Total Shares Sold</span>
+                      <span className="detail-value">{earnings.totalSoldShares?.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Avg. Buy Price</span>
+                      <span className="detail-value">{formatCurrency(earnings.avgBuyPrice)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Avg. Sell Price</span>
+                      <span className="detail-value">{formatCurrency(earnings.avgSellPrice)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Total Invested</span>
+                      <span className="detail-value">{formatCurrency(earnings.totalBoughtAmount)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Total Received</span>
+                      <span className="detail-value">{formatCurrency(earnings.totalSoldValue)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="detail-item">
+                      <span className="detail-label">Shares Held</span>
+                      <span className="detail-value">{selectedStock.shares.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Avg. Cost</span>
+                      <span className="detail-value">{formatCurrency(selectedStock.purchasePrice)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Current Price</span>
+                      <span className="detail-value">{formatCurrency(selectedStock.currentPrice || selectedStock.purchasePrice)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Total Cost</span>
+                      <span className="detail-value">{formatCurrency(earnings.currentHoldingCost)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Current Value</span>
+                      <span className="detail-value">{formatCurrency(earnings.currentHoldingValue)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Shares Sold</span>
+                      <span className="detail-value">{earnings.totalSoldShares.toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

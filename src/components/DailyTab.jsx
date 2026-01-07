@@ -6,22 +6,25 @@ export function DailyTab({ stocks }) {
   const stocksWithDailyStats = useMemo(() => {
     return stocks.map(stock => {
       const priceNow = stock.currentPrice || stock.purchasePrice
-      const ldp = stock.ldp || stock.purchasePrice // Last Day Price
+      // Only use ldcp if it's a real value (not null/undefined/0)
+      const hasValidLdcp = stock.ldcp && stock.ldcp > 0
+      const ldcp = hasValidLdcp ? stock.ldcp : null
       const buyingPrice = stock.purchasePrice
       const shares = stock.shares
       const high52w = stock.high52w || null
       const dayLow = stock.dayLow || null
       const dayHigh = stock.dayHigh || null
 
-      // Daily change calculations
-      const dailyChangePercent = ldp > 0 ? ((priceNow - ldp) / ldp) * 100 : 0
-      const dailyChangeAmount = (priceNow - ldp) * shares
+      // Daily change calculations - only if we have valid LDCP
+      const dailyChangePercent = hasValidLdcp ? ((priceNow - ldcp) / ldcp) * 100 : 0
+      const dailyChangeAmount = hasValidLdcp ? (priceNow - ldcp) * shares : 0
       const isGainer = dailyChangePercent >= 0
 
       return {
         ...stock,
         priceNow,
-        ldp,
+        ldcp,
+        hasValidLdcp,
         buyingPrice,
         high52w,
         dayLow,
@@ -33,42 +36,43 @@ export function DailyTab({ stocks }) {
     })
   }, [stocks])
 
-  // Calculate total daily P&L
+  // Calculate total daily P&L - only include stocks with valid LDCP
   const totalDailyPnL = useMemo(() => {
-    const amount = stocksWithDailyStats.reduce((sum, s) => sum + s.dailyChangeAmount, 0)
-    const totalValue = stocksWithDailyStats.reduce((sum, s) => sum + (s.ldp * s.shares), 0)
+    const validStocks = stocksWithDailyStats.filter(s => s.hasValidLdcp)
+    const amount = validStocks.reduce((sum, s) => sum + s.dailyChangeAmount, 0)
+    const totalValue = validStocks.reduce((sum, s) => sum + (s.ldcp * s.shares), 0)
     const percent = totalValue > 0 ? (amount / totalValue) * 100 : 0
     return { amount, percent, isPositive: amount >= 0 }
   }, [stocksWithDailyStats])
 
-  // Top Gainers by %
+  // Top Gainers by % - only include stocks with valid LDCP
   const topGainersByPercent = useMemo(() => {
     return [...stocksWithDailyStats]
-      .filter(s => s.dailyChangePercent > 0)
+      .filter(s => s.hasValidLdcp && s.dailyChangePercent > 0)
       .sort((a, b) => b.dailyChangePercent - a.dailyChangePercent)
       .slice(0, 5)
   }, [stocksWithDailyStats])
 
-  // Top Gainers by Amount
+  // Top Gainers by Amount - only include stocks with valid LDCP
   const topGainersByAmount = useMemo(() => {
     return [...stocksWithDailyStats]
-      .filter(s => s.dailyChangeAmount > 0)
+      .filter(s => s.hasValidLdcp && s.dailyChangeAmount > 0)
       .sort((a, b) => b.dailyChangeAmount - a.dailyChangeAmount)
       .slice(0, 5)
   }, [stocksWithDailyStats])
 
-  // Top Losers by %
+  // Top Losers by % - only include stocks with valid LDCP
   const topLosersByPercent = useMemo(() => {
     return [...stocksWithDailyStats]
-      .filter(s => s.dailyChangePercent < 0)
+      .filter(s => s.hasValidLdcp && s.dailyChangePercent < 0)
       .sort((a, b) => a.dailyChangePercent - b.dailyChangePercent)
       .slice(0, 5)
   }, [stocksWithDailyStats])
 
-  // Top Losers by Amount
+  // Top Losers by Amount - only include stocks with valid LDCP
   const topLosersByAmount = useMemo(() => {
     return [...stocksWithDailyStats]
-      .filter(s => s.dailyChangeAmount < 0)
+      .filter(s => s.hasValidLdcp && s.dailyChangeAmount < 0)
       .sort((a, b) => a.dailyChangeAmount - b.dailyChangeAmount)
       .slice(0, 5)
   }, [stocksWithDailyStats])
@@ -141,7 +145,7 @@ export function DailyTab({ stocks }) {
               <tr>
                 <th>SYMBOL</th>
                 <th>Price Now</th>
-                <th>LDP</th>
+                <th>LDCP</th>
                 <th>Buying Price</th>
                 <th>% up</th>
                 <th>Today's gain</th>
@@ -155,7 +159,7 @@ export function DailyTab({ stocks }) {
                   <tr key={stock.symbol} className="gainer-row">
                     <td className="symbol-cell">{stock.symbol}</td>
                     <td>{formatNumber(stock.priceNow)}</td>
-                    <td>{formatNumber(stock.ldp)}</td>
+                    <td>{stock.ldcp ? formatNumber(stock.ldcp) : <span className="na-value">N/A</span>}</td>
                     <td>{formatNumber(stock.buyingPrice)}</td>
                     <td className="percent-cell positive">▲ {stock.dailyChangePercent.toFixed(2)}%</td>
                     <td className="amount-cell positive">{formatNumber(stock.dailyChangeAmount)}</td>
@@ -174,7 +178,7 @@ export function DailyTab({ stocks }) {
               <tr>
                 <th>SYMBOL</th>
                 <th>Price Now</th>
-                <th>LDP</th>
+                <th>LDCP</th>
                 <th>Buying Price</th>
                 <th>% up</th>
                 <th>Today's gain</th>
@@ -188,7 +192,7 @@ export function DailyTab({ stocks }) {
                   <tr key={stock.symbol} className="gainer-row">
                     <td className="symbol-cell">{stock.symbol}</td>
                     <td>{formatNumber(stock.priceNow)}</td>
-                    <td>{formatNumber(stock.ldp)}</td>
+                    <td>{stock.ldcp ? formatNumber(stock.ldcp) : <span className="na-value">N/A</span>}</td>
                     <td>{formatNumber(stock.buyingPrice)}</td>
                     <td className="percent-cell positive">▲ {stock.dailyChangePercent.toFixed(2)}%</td>
                     <td className="amount-cell positive">{formatNumber(stock.dailyChangeAmount)}</td>
@@ -207,7 +211,7 @@ export function DailyTab({ stocks }) {
               <tr>
                 <th>SYMBOL</th>
                 <th>Price Now</th>
-                <th>LDP</th>
+                <th>LDCP</th>
                 <th>Buying Price</th>
                 <th>% down</th>
                 <th>Today's loss</th>
@@ -221,7 +225,7 @@ export function DailyTab({ stocks }) {
                   <tr key={stock.symbol} className="loser-row">
                     <td className="symbol-cell">{stock.symbol}</td>
                     <td>{formatNumber(stock.priceNow)}</td>
-                    <td>{formatNumber(stock.ldp)}</td>
+                    <td>{stock.ldcp ? formatNumber(stock.ldcp) : <span className="na-value">N/A</span>}</td>
                     <td>{formatNumber(stock.buyingPrice)}</td>
                     <td className="percent-cell negative">▼ {Math.abs(stock.dailyChangePercent).toFixed(2)}%</td>
                     <td className="amount-cell negative">{formatNumber(stock.dailyChangeAmount)}</td>
@@ -240,7 +244,7 @@ export function DailyTab({ stocks }) {
               <tr>
                 <th>SYMBOL</th>
                 <th>Price Now</th>
-                <th>LDP</th>
+                <th>LDCP</th>
                 <th>Buying Price</th>
                 <th>% down</th>
                 <th>Today's loss</th>
@@ -254,7 +258,7 @@ export function DailyTab({ stocks }) {
                   <tr key={stock.symbol} className="loser-row">
                     <td className="symbol-cell">{stock.symbol}</td>
                     <td>{formatNumber(stock.priceNow)}</td>
-                    <td>{formatNumber(stock.ldp)}</td>
+                    <td>{stock.ldcp ? formatNumber(stock.ldcp) : <span className="na-value">N/A</span>}</td>
                     <td>{formatNumber(stock.buyingPrice)}</td>
                     <td className="percent-cell negative">▼ {Math.abs(stock.dailyChangePercent).toFixed(2)}%</td>
                     <td className="amount-cell negative">{formatNumber(stock.dailyChangeAmount)}</td>
@@ -276,7 +280,7 @@ export function DailyTab({ stocks }) {
               <tr>
                 <th>SYMBOL</th>
                 <th>Price now</th>
-                <th>LDP</th>
+                <th>LDCP</th>
                 <th>Buying Price</th>
                 <th>52-Week High</th>
                 <th>drop</th>
@@ -290,7 +294,7 @@ export function DailyTab({ stocks }) {
                   <tr key={stock.symbol} className="dropper-row">
                     <td className="symbol-cell dropper">{stock.symbol}</td>
                     <td>{formatNumber(stock.priceNow)}</td>
-                    <td>{formatNumber(stock.ldp)}</td>
+                    <td>{stock.ldcp ? formatNumber(stock.ldcp) : <span className="na-value">N/A</span>}</td>
                     <td>{formatNumber(stock.buyingPrice)}</td>
                     <td className="high52w-cell">{formatNumber(stock.high52w)}</td>
                     <td className="drop-cell">{stock.dropFrom52w.toFixed(2)}%</td>

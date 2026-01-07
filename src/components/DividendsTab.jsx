@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { formatCurrency } from '../utils/formatters'
 import * as supabaseService from '../services/supabaseService'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { DividendDetailModal } from './DividendDetailModal'
 
 export function DividendsTab({ stocks, onDividendChange }) {
   const [dividends, setDividends] = useState([])
@@ -13,6 +14,7 @@ export function DividendsTab({ stocks, onDividendChange }) {
     notes: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedSymbol, setSelectedSymbol] = useState(null)
 
   // Load dividends from Supabase
   useEffect(() => {
@@ -28,20 +30,47 @@ export function DividendsTab({ stocks, onDividendChange }) {
     loadDividends()
   }, [])
 
-  // Calculate totals
-  const totals = useMemo(() => {
-    const bySymbol = {}
-    let grandTotal = 0
-
+  // Group dividends by symbol
+  const dividendsBySymbol = useMemo(() => {
+    const grouped = {}
+    
     dividends.forEach(div => {
-      if (!bySymbol[div.symbol]) {
-        bySymbol[div.symbol] = 0
+      if (!grouped[div.symbol]) {
+        grouped[div.symbol] = {
+          symbol: div.symbol,
+          totalAmount: 0,
+          count: 0,
+          dividends: [],
+          latestDate: null
+        }
       }
-      bySymbol[div.symbol] += div.amount
-      grandTotal += div.amount
+      grouped[div.symbol].totalAmount += div.amount
+      grouped[div.symbol].count += 1
+      grouped[div.symbol].dividends.push(div)
+      
+      const divDate = new Date(div.date)
+      if (!grouped[div.symbol].latestDate || divDate > grouped[div.symbol].latestDate) {
+        grouped[div.symbol].latestDate = divDate
+      }
     })
 
-    return { bySymbol, grandTotal }
+    // Sort dividends within each group by date (newest first)
+    Object.values(grouped).forEach(group => {
+      group.dividends.sort((a, b) => new Date(b.date) - new Date(a.date))
+    })
+
+    return grouped
+  }, [dividends])
+
+  // Get sorted list of symbols by total amount
+  const sortedSymbols = useMemo(() => {
+    return Object.values(dividendsBySymbol)
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+  }, [dividendsBySymbol])
+
+  // Calculate grand total
+  const grandTotal = useMemo(() => {
+    return dividends.reduce((sum, d) => sum + d.amount, 0)
   }, [dividends])
 
   const handleChange = (e) => {
@@ -84,13 +113,34 @@ export function DividendsTab({ stocks, onDividendChange }) {
   }
 
   const handleDelete = async (dividendId) => {
-    if (!window.confirm('Are you sure you want to delete this dividend?')) return
+    if (!window.confirm('Are you sure you want to delete this dividend?')) {
+      return
+    }
 
     const success = await supabaseService.deleteDividend(dividendId)
+    
     if (success) {
       setDividends(prev => prev.filter(d => d.id !== dividendId))
       onDividendChange?.()
+      
+      // If the modal is open and this was the last dividend for this symbol, close the modal
+      if (selectedSymbol) {
+        const remainingForSymbol = dividends.filter(d => d.symbol === selectedSymbol && d.id !== dividendId)
+        if (remainingForSymbol.length === 0) {
+          setSelectedSymbol(null)
+        }
+      }
+    } else {
+      alert('Failed to delete dividend. Please try again.')
     }
+  }
+
+  const handleSymbolClick = (symbol) => {
+    setSelectedSymbol(symbol)
+  }
+
+  const handleCloseModal = () => {
+    setSelectedSymbol(null)
   }
 
   if (!isSupabaseConfigured()) {
@@ -104,6 +154,9 @@ export function DividendsTab({ stocks, onDividendChange }) {
       </div>
     )
   }
+
+  // Get selected symbol data for modal
+  const selectedDividendData = selectedSymbol ? dividendsBySymbol[selectedSymbol] : null
 
   return (
     <div className="dividends-tab">
@@ -184,77 +237,66 @@ export function DividendsTab({ stocks, onDividendChange }) {
         </form>
       </div>
 
-      {/* Dividend Summary */}
-      <div className="dividend-summary-section">
-        <h2 className="section-title">
-          <span className="title-icon">📊</span>
-          Dividend Summary
-        </h2>
-        
-        <div className="dividend-total-card">
-          <span className="total-label">Total Dividends Received</span>
-          <span className="total-value">{formatCurrency(totals.grandTotal)}</span>
-        </div>
-
-        {Object.keys(totals.bySymbol).length > 0 && (
-          <div className="dividend-by-symbol">
-            <h4>By Stock</h4>
-            <div className="symbol-dividends-grid">
-              {Object.entries(totals.bySymbol)
-                .sort((a, b) => b[1] - a[1])
-                .map(([symbol, amount]) => (
-                  <div key={symbol} className="symbol-dividend-card">
-                    <span className="symbol-name">{symbol}</span>
-                    <span className="symbol-amount">{formatCurrency(amount)}</span>
-                  </div>
-                ))}
-            </div>
+      {/* Dividend Portfolio Table */}
+      <section className="portfolio-section">
+        <div className="section-header">
+          <h2 className="section-title">
+            <span className="title-icon">💰</span>
+            Dividend Portfolio
+          </h2>
+          <div className="dividend-grand-total">
+            <span className="total-label">Total Dividends:</span>
+            <span className="total-value positive">{formatCurrency(grandTotal)}</span>
           </div>
-        )}
-      </div>
-
-      {/* Dividend History */}
-      <div className="dividend-history-section">
-        <h2 className="section-title">
-          <span className="title-icon">📜</span>
-          Dividend History
-        </h2>
+        </div>
 
         {isLoading ? (
           <div className="loading-state">Loading dividends...</div>
-        ) : dividends.length === 0 ? (
-          <div className="empty-state">
+        ) : sortedSymbols.length === 0 ? (
+          <div className="empty-state visible">
             <span className="empty-icon">💸</span>
             <p>No dividends recorded yet</p>
-            <span className="empty-hint">Add your first dividend above</span>
+            <span className="empty-hint">Add your first dividend above to get started</span>
           </div>
         ) : (
           <div className="table-container">
-            <table className="dividends-table">
+            <table className="portfolio-table dividends-portfolio-table">
               <thead>
                 <tr>
-                  <th>Date</th>
                   <th>Symbol</th>
-                  <th>Amount</th>
-                  <th>Notes</th>
-                  <th>Actions</th>
+                  <th>Payments</th>
+                  <th>Total Dividends</th>
+                  <th>Last Payment</th>
+                  <th>Avg. per Payment</th>
                 </tr>
               </thead>
               <tbody>
-                {dividends.map(div => (
-                  <tr key={div.id}>
-                    <td>{new Date(div.date).toLocaleDateString()}</td>
-                    <td className="symbol-cell">{div.symbol}</td>
-                    <td className="amount-cell positive">{formatCurrency(div.amount)}</td>
-                    <td className="notes-cell">{div.notes || '—'}</td>
-                    <td className="actions">
-                      <button
-                        className="action-btn delete"
-                        onClick={() => handleDelete(div.id)}
-                        title="Delete"
+                {sortedSymbols.map(item => (
+                  <tr key={item.symbol}>
+                    <td className="symbol">
+                      <button 
+                        className="symbol-link"
+                        onClick={() => handleSymbolClick(item.symbol)}
+                        title="View dividend history"
                       >
-                        ✕
+                        {item.symbol}
                       </button>
+                    </td>
+                    <td className="payments-count">
+                      <span className="payment-badge">{item.count}</span>
+                    </td>
+                    <td className="total-amount positive">
+                      {formatCurrency(item.totalAmount)}
+                    </td>
+                    <td className="last-payment">
+                      {item.latestDate?.toLocaleDateString('en-PK', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </td>
+                    <td className="avg-payment">
+                      {formatCurrency(item.totalAmount / item.count)}
                     </td>
                   </tr>
                 ))}
@@ -262,8 +304,18 @@ export function DividendsTab({ stocks, onDividendChange }) {
             </table>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* Dividend Detail Modal */}
+      {selectedDividendData && (
+        <DividendDetailModal
+          symbol={selectedSymbol}
+          dividends={selectedDividendData.dividends}
+          totalAmount={selectedDividendData.totalAmount}
+          onClose={handleCloseModal}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   )
 }
-

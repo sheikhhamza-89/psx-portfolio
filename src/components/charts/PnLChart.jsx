@@ -28,7 +28,7 @@ export function PnLChart({ stocks }) {
     const investment = stock.shares * stock.purchasePrice
     const currentValue = stock.shares * (stock.currentPrice || stock.purchasePrice)
     const pnl = currentValue - investment
-    const pnlPercent = (pnl / investment) * 100
+    const pnlPercent = investment > 0 ? (pnl / investment) * 100 : 0
 
     return {
       symbol: stock.symbol,

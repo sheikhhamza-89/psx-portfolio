@@ -83,7 +83,7 @@ export function CategoryChart({ stocks }) {
     return {
       name: categoryInfo ? categoryInfo.label : key,
       value: data.value,
-      percent: (data.value / totalValue) * 100,
+      percent: totalValue > 0 ? (data.value / totalValue) * 100 : 0,
       stockCount: data.stockCount,
       category: key
     }

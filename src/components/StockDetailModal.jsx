@@ -1,6 +1,37 @@
 import { formatCurrency, formatNumber } from '../utils/formatters'
 import { STOCK_CATEGORIES } from '../utils/constants'
 
+/**
+ * Calculate average cost from transactions using proper cost basis tracking.
+ * When shares are sold, the cost basis is reduced proportionally using the current average.
+ */
+function calculateAverageCostFromTransactions(transactions) {
+  if (!transactions || transactions.length === 0) return 0
+  
+  const sortedTxns = [...transactions].sort((a, b) => 
+    new Date(a.date || 0) - new Date(b.date || 0)
+  )
+  
+  let totalShares = 0
+  let totalCostBasis = 0
+  
+  for (const txn of sortedTxns) {
+    if (txn.type === 'buy') {
+      totalCostBasis += txn.shares * txn.price
+      totalShares += txn.shares
+    } else if (txn.type === 'sell') {
+      if (totalShares > 0) {
+        const currentAvg = totalCostBasis / totalShares
+        const sharesToSell = Math.min(txn.shares, totalShares)
+        totalCostBasis -= sharesToSell * currentAvg
+        totalShares -= sharesToSell
+      }
+    }
+  }
+  
+  return { avgCost: totalShares > 0 ? totalCostBasis / totalShares : 0, costBasis: totalCostBasis }
+}
+
 export function StockDetailModal({ stock, onClose, onDeleteTransaction }) {
   if (!stock) return null
 
@@ -9,14 +40,13 @@ export function StockDetailModal({ stock, onClose, onDeleteTransaction }) {
     return cat ? cat.label : value || '—'
   }
 
-  // Calculate totals
+  // Calculate totals using proper cost basis tracking
   const transactions = stock.transactions || []
   const totalShares = transactions.reduce((sum, t) => sum + (t.type === 'buy' ? t.shares : -t.shares), 0)
-  const totalCost = transactions.reduce((sum, t) => sum + (t.type === 'buy' ? t.shares * t.price : 0), 0)
-  const avgCost = totalShares > 0 ? totalCost / totalShares : 0
+  const { avgCost, costBasis } = calculateAverageCostFromTransactions(transactions)
   const currentValue = totalShares * (stock.currentPrice || avgCost)
-  const totalPnl = currentValue - totalCost
-  const pnlPercent = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0
+  const totalPnl = currentValue - costBasis
+  const pnlPercent = costBasis > 0 ? (totalPnl / costBasis) * 100 : 0
   const isPositive = totalPnl >= 0
 
   return (
@@ -48,7 +78,7 @@ export function StockDetailModal({ stock, onClose, onDeleteTransaction }) {
           </div>
           <div className="detail-stat">
             <span className="detail-stat-label">Total Investment</span>
-            <span className="detail-stat-value">{formatCurrency(totalCost)}</span>
+            <span className="detail-stat-value">{formatCurrency(costBasis)}</span>
           </div>
           <div className="detail-stat">
             <span className="detail-stat-label">Current Value</span>

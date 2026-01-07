@@ -28,7 +28,7 @@ export function usePriceCache() {
   /**
    * Get cached data if still valid
    * @param {string} symbol - Stock symbol
-   * @returns {{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}|null} Cached data or null
+   * @returns {{price: number|null, ldcp: number|null, high52w: number|null, low52w: number|null, dayLow: number|null, dayHigh: number|null}|null} Cached data or null
    */
   const getCachedData = useCallback((symbol) => {
     const normalizedSymbol = symbol.toUpperCase().trim()
@@ -37,8 +37,9 @@ export function usePriceCache() {
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return { 
         price: cached.price, 
-        ldp: cached.ldp,
+        ldcp: cached.ldcp,
         high52w: cached.high52w || null,
+        low52w: cached.low52w || null,
         dayLow: cached.dayLow || null,
         dayHigh: cached.dayHigh || null
       }
@@ -59,8 +60,9 @@ export function usePriceCache() {
       ...prev,
       [normalizedSymbol]: {
         price: data.price,
-        ldp: data.ldp,
+        ldcp: data.ldcp,
         high52w: data.high52w,
+        low52w: data.low52w,
         dayLow: data.dayLow,
         dayHigh: data.dayHigh,
         timestamp: Date.now()
@@ -72,10 +74,10 @@ export function usePriceCache() {
    * Set price in cache (legacy support)
    * @param {string} symbol - Stock symbol
    * @param {number} price - Price to cache
-   * @param {number} ldp - LDP to cache (optional)
+   * @param {number} ldcp - LDCP to cache (optional)
    */
-  const setCachedPrice = useCallback((symbol, price, ldp = null) => {
-    setCachedData(symbol, { price, ldp, high52w: null, dayLow: null, dayHigh: null })
+  const setCachedPrice = useCallback((symbol, price, ldcp = null) => {
+    setCachedData(symbol, { price, ldcp, high52w: null, low52w: null, dayLow: null, dayHigh: null })
   }, [setCachedData])
 
   /**
@@ -104,13 +106,13 @@ export function usePriceCache() {
   /**
    * Fetch complete stock data with caching
    * @param {string} symbol - Stock symbol
-   * @returns {Promise<{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}>} Stock data
+   * @returns {Promise<{price: number|null, ldcp: number|null, high52w: number|null, low52w: number|null, dayLow: number|null, dayHigh: number|null}>} Stock data
    */
   const getStockData = useCallback(async (symbol) => {
     // Check cache first
     const cachedData = getCachedData(symbol)
     if (cachedData !== null && cachedData.price !== null) {
-      console.log(`📦 Using cached data for ${symbol}: Price=${cachedData.price}, LDP=${cachedData.ldp}, 52wH=${cachedData.high52w}`)
+      console.log(`📦 Using cached data for ${symbol}: Price=${cachedData.price}, LDCP=${cachedData.ldcp}, 52wH=${cachedData.high52w}`)
       return cachedData
     }
 
@@ -140,12 +142,21 @@ export function usePriceCache() {
     })
   }, [setCache])
 
+  /**
+   * Clear ALL entries from cache (force refresh)
+   */
+  const clearAllCache = useCallback(() => {
+    console.log('🗑️ Clearing all price cache...')
+    setCache({})
+  }, [setCache])
+
   return {
     getPrice,
     getStockData,
     getCachedPrice,
     getCachedData,
     setCachedPrice,
-    cleanCache
+    cleanCache,
+    clearAllCache
   }
 }

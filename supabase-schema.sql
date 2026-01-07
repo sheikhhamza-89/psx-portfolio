@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS stocks (
   shares DECIMAL(15, 4) NOT NULL DEFAULT 0,
   purchase_price DECIMAL(15, 4) NOT NULL,
   current_price DECIMAL(15, 4),
-  ldp DECIMAL(15, 4),                    -- Last Day Price
+  ldp DECIMAL(15, 4),                    -- Last Day Closing Price (LDCP)
   high_52w DECIMAL(15, 4),               -- 52 Week High
   day_low DECIMAL(15, 4),                -- Today's Low
   day_high DECIMAL(15, 4),               -- Today's High

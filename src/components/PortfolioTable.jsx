@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { formatNumber, formatCurrency, formatPercent } from '../utils/formatters'
 import { STOCK_CATEGORIES } from '../utils/constants'
 
-export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshing, onSymbolClick }) {
+export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, onClearCache, isRefreshing, onSymbolClick }) {
   const [symbolFilter, setSymbolFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
 
@@ -65,15 +65,26 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
           <span className="title-icon">◇</span>
           My Portfolio
         </h2>
-        <button 
-          className={`btn btn-refresh ${isRefreshing ? 'loading' : ''}`}
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          title="Refresh all prices"
-        >
-          <span className="refresh-icon">↻</span>
-          Refresh Prices
-        </button>
+        <div className="header-actions">
+          <button 
+            className={`btn btn-refresh ${isRefreshing ? 'loading' : ''}`}
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            title="Refresh all prices"
+          >
+            <span className="refresh-icon">↻</span>
+            Refresh Prices
+          </button>
+          <button 
+            className="btn btn-clear-cache"
+            onClick={onClearCache}
+            disabled={isRefreshing}
+            title="Clear cache and fetch fresh data"
+          >
+            <span className="cache-icon">🗑</span>
+            Clear Cache
+          </button>
+        </div>
       </div>
 
       {/* Filter Section */}
@@ -138,7 +149,7 @@ export function PortfolioTable({ stocks, onEdit, onDelete, onRefresh, isRefreshi
               const investment = stock.shares * stock.purchasePrice
               const currentValue = stock.shares * (stock.currentPrice || stock.purchasePrice)
               const pnl = currentValue - investment
-              const pnlPercent = ((pnl / investment) * 100).toFixed(2)
+              const pnlPercent = investment > 0 ? ((pnl / investment) * 100).toFixed(2) : '0.00'
               const isPositive = pnl >= 0
 
               return (

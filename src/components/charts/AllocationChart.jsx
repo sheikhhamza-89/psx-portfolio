@@ -59,46 +59,82 @@ export function AllocationChart({ stocks }) {
     return {
       symbol: stock.symbol,
       value,
-      percent: (value / totalValue) * 100
+      percent: totalValue > 0 ? (value / totalValue) * 100 : 0
     }
   }).sort((a, b) => b.value - a.value)
 
   return (
-    <div className="chart-container">
+    <div className="chart-container chart-3d">
       <h3 className="chart-title">
         <span className="chart-icon">◐</span>
         Portfolio Allocation
       </h3>
-      <div className="chart-wrapper">
-        <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              paddingAngle={2}
-              dataKey="value"
-              nameKey="symbol"
-              animationBegin={0}
-              animationDuration={800}
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={COLORS[index % COLORS.length]}
-                  stroke="rgba(0,0,0,0.3)"
-                  strokeWidth={1}
-                />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend content={<CustomLegend />} />
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="chart-wrapper-3d">
+        <div className="pie-3d-container">
+          {/* 3D Shadow/Depth layers */}
+          <div className="pie-3d-shadow"></div>
+          <div className="pie-3d-depth">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={0}
+                  outerRadius={90}
+                  paddingAngle={1}
+                  dataKey="value"
+                  nameKey="symbol"
+                  animationBegin={0}
+                  animationDuration={800}
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-depth-${index}`} 
+                      fill={COLORS[index % COLORS.length]}
+                      fillOpacity={0.4}
+                      stroke="none"
+                    />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Main pie chart */}
+          <div className="pie-3d-main">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={0}
+                  outerRadius={90}
+                  paddingAngle={1}
+                  dataKey="value"
+                  nameKey="symbol"
+                  animationBegin={0}
+                  animationDuration={800}
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]}
+                      stroke="rgba(255,255,255,0.2)"
+                      strokeWidth={1}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="chart-legend-container">
+          <CustomLegend payload={data.map((d, i) => ({ value: d.symbol, color: COLORS[i % COLORS.length] }))} />
+        </div>
       </div>
-      <div className="chart-center-label">
+      <div className="chart-center-label-3d">
         <span className="center-value">{formatCurrency(totalValue)}</span>
         <span className="center-label">Total Value</span>
       </div>

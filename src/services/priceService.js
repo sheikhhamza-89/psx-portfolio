@@ -1,9 +1,9 @@
 import { CORS_PROXIES, PSX_BASE_URL } from '../utils/constants'
 
 /**
- * Fetches stock price, LDP, 52-week high, daily low/high from PSX website using CORS proxy
+ * Fetches stock price, LDCP, 52-week high/low, daily low/high from PSX website using CORS proxy
  * @param {string} symbol - Stock symbol (e.g., 'OGDC', 'HBL')
- * @returns {Promise<{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}>} The stock data
+ * @returns {Promise<{price: number|null, ldcp: number|null, high52w: number|null, low52w: number|null, dayLow: number|null, dayHigh: number|null}>} The stock data
  */
 export async function fetchPriceDataFromPSX(symbol) {
   const normalizedSymbol = symbol.toUpperCase().trim()
@@ -24,8 +24,9 @@ export async function fetchPriceDataFromPSX(symbol) {
       if (response.ok) {
         const html = await response.text()
         let price = null
-        let ldp = null
+        let ldcp = null
         let high52w = null
+        let low52w = null
         let dayLow = null
         let dayHigh = null
 
@@ -43,79 +44,88 @@ export async function fetchPriceDataFromPSX(symbol) {
         }
 
         // Extract LDCP (Last Day Closing Price) - try multiple patterns
+        // HTML structure: <div class="stats_item"><div class="stats_label">LDCP</div><div class="stats_value">254.92</div></div>
         const ldcpPatterns = [
+          // Pattern for: <div class="stats_label">LDCP</div><div class="stats_value">254.92</div>
+          /class="stats_label"[^>]*>LDCP<\/div>\s*<div[^>]*class="stats_value"[^>]*>([\d,\.]+)<\/div>/i,
+          // Pattern for any label followed by value div
+          />LDCP<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          // Fallback patterns
           /LDCP<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
-          /LDCP<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
-          /"LDCP"[^>]*>[\s\S]*?<[^>]*>([\d,\.]+)</i,
-          /LDCP[\s\S]*?>([\d,\.]+)</i
+          /LDCP<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i
         ]
         for (const pattern of ldcpPatterns) {
           const ldcpMatch = html.match(pattern)
           if (ldcpMatch) {
-            ldp = parseFloat(ldcpMatch[1].replace(/,/g, ''))
-            if (ldp > 0) {
-              console.log(`🔍 LDCP matched with pattern: ${pattern}`)
+            ldcp = parseFloat(ldcpMatch[1].replace(/,/g, ''))
+            if (ldcp > 0) {
+              console.log(`🔍 LDCP matched with pattern: ${pattern}, value: ${ldcp}`)
               break
             }
           }
         }
 
-        // Extract 52 Week High - try multiple patterns
-        const high52wPatterns = [
-          /52\s*[Ww]eek\s*[Hh]igh<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
-          /52\s*[Ww]eek\s*[Hh]igh<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
-          /52\s*-?\s*[Ww](?:eek)?\s*[Hh](?:igh)?<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i
-        ]
-        for (const pattern of high52wPatterns) {
-          const high52wMatch = html.match(pattern)
-          if (high52wMatch && high52wMatch[1]) {
-            const val = parseFloat(high52wMatch[1].replace(/,/g, ''))
-            // Sanity check: 52w high should be reasonable (not millions for PSX stocks)
-            if (val > 0 && val < 50000) {
-              high52w = val
-              console.log(`🔍 52W High matched with pattern: ${pattern}, value: ${val}`)
-              break
-            }
+        // Extract 52 Week High and Low from numRange data attributes
+        // HTML: <div class="numRange" data-low="145.25" data-high="263.3" data-current="252.23">
+        const numRangeMatch = html.match(/52-WEEK\s*RANGE[\s\S]*?numRange[^>]*data-low="([\d\.]+)"[^>]*data-high="([\d\.]+)"/i)
+        if (numRangeMatch) {
+          low52w = parseFloat(numRangeMatch[1])
+          high52w = parseFloat(numRangeMatch[2])
+          console.log(`🔍 52W Range: Low=${low52w}, High=${high52w}`)
+        } else {
+          // Fallback: try to find data-low and data-high directly (first occurrence should be 52w)
+          const dataLowMatch = html.match(/data-low="([\d\.]+)"/i)
+          const dataHighMatch = html.match(/data-high="([\d\.]+)"/i)
+          if (dataLowMatch) {
+            low52w = parseFloat(dataLowMatch[1])
+          }
+          if (dataHighMatch) {
+            high52w = parseFloat(dataHighMatch[1])
+          }
+          if (low52w || high52w) {
+            console.log(`🔍 52W Range from data attrs: Low=${low52w}, High=${high52w}`)
           }
         }
 
         // Extract Day's Low - try multiple patterns
+        // HTML: <div class="stats_label">Low</div><div class="stats_value">253.00</div>
         const dayLowPatterns = [
-          /Low<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
-          /Low<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
-          /"Low"[\s\S]*?>([\d,\.]+)</i
+          /class="stats_label"[^>]*>Low<\/div>\s*<div[^>]*class="stats_value"[^>]*>([\d,\.]+)<\/div>/i,
+          />Low<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          /Low<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i
         ]
         for (const pattern of dayLowPatterns) {
           const dayLowMatch = html.match(pattern)
           if (dayLowMatch) {
             dayLow = parseFloat(dayLowMatch[1].replace(/,/g, ''))
             if (dayLow > 0) {
-              console.log(`🔍 Day Low matched with pattern: ${pattern}`)
+              console.log(`🔍 Day Low matched, value: ${dayLow}`)
               break
             }
           }
         }
 
         // Extract Day's High - try multiple patterns  
+        // HTML: <div class="stats_label">High</div><div class="stats_value">257.00</div>
         const dayHighPatterns = [
-          /High<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i,
-          /High<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
-          /"High"[\s\S]*?>([\d,\.]+)</i
+          /class="stats_label"[^>]*>High<\/div>\s*<div[^>]*class="stats_value"[^>]*>([\d,\.]+)<\/div>/i,
+          />High<\/div>\s*<div[^>]*>([\d,\.]+)<\/div>/i,
+          /High<\/div>\s*<div[^>]*class="[^"]*stats_value[^"]*"[^>]*>([\d,\.]+)<\/div>/i
         ]
         for (const pattern of dayHighPatterns) {
           const dayHighMatch = html.match(pattern)
           if (dayHighMatch) {
             dayHigh = parseFloat(dayHighMatch[1].replace(/,/g, ''))
             if (dayHigh > 0) {
-              console.log(`🔍 Day High matched with pattern: ${pattern}`)
+              console.log(`🔍 Day High matched, value: ${dayHigh}`)
               break
             }
           }
         }
 
-        if (price !== null || ldp !== null) {
-          console.log(`✅ Fetched ${normalizedSymbol} - Price: ${price}, LDP: ${ldp}, 52wH: ${high52w}, Low: ${dayLow}, High: ${dayHigh}`)
-          return { price, ldp, high52w, dayLow, dayHigh }
+        if (price !== null || ldcp !== null) {
+          console.log(`✅ Fetched ${normalizedSymbol} - Price: ${price}, LDCP: ${ldcp}, 52wH: ${high52w}, 52wL: ${low52w}, Low: ${dayLow}, High: ${dayHigh}`)
+          return { price, ldcp, high52w, low52w, dayLow, dayHigh }
         }
       }
     } catch (error) {
@@ -123,7 +133,7 @@ export async function fetchPriceDataFromPSX(symbol) {
     }
   }
 
-  return { price: null, ldp: null, high52w: null, dayLow: null, dayHigh: null }
+  return { price: null, ldcp: null, high52w: null, low52w: null, dayLow: null, dayHigh: null }
 }
 
 /**
@@ -133,7 +143,7 @@ export async function fetchPriceDataFromPSX(symbol) {
  */
 export async function fetchPriceFromPSX(symbol) {
   const data = await fetchPriceDataFromPSX(symbol)
-  return data.price || data.ldp
+  return data.price || data.ldcp
 }
 
 /**
@@ -193,9 +203,9 @@ export async function fetchStockPrice(symbol) {
 }
 
 /**
- * Fetches complete stock data including price, LDP, 52-week high, daily low/high
+ * Fetches complete stock data including price, LDCP, 52-week high/low, daily low/high
  * @param {string} symbol - Stock symbol
- * @returns {Promise<{price: number|null, ldp: number|null, high52w: number|null, dayLow: number|null, dayHigh: number|null}>} Stock data
+ * @returns {Promise<{price: number|null, ldcp: number|null, high52w: number|null, low52w: number|null, dayLow: number|null, dayHigh: number|null}>} Stock data
  */
 export async function fetchStockData(symbol) {
   // Try PSX first
@@ -209,9 +219,10 @@ export async function fetchStockData(symbol) {
   const yahooPrice = await fetchPriceFromYahoo(symbol)
   
   return {
-    price: yahooPrice || psxData.ldp,
-    ldp: psxData.ldp,
+    price: yahooPrice || psxData.ldcp,
+    ldcp: psxData.ldcp,
     high52w: psxData.high52w,
+    low52w: psxData.low52w,
     dayLow: psxData.dayLow,
     dayHigh: psxData.dayHigh
   }

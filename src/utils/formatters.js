@@ -27,6 +27,7 @@ export function formatCurrency(amount) {
  * @returns {string} Formatted percentage string
  */
 export function formatPercent(percent) {
+  if (percent === null || percent === undefined || isNaN(percent)) return '+0.00%'
   const formatted = parseFloat(percent).toFixed(2)
   return percent >= 0 ? `+${formatted}%` : `${formatted}%`
 }

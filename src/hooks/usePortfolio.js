@@ -4,6 +4,42 @@ import { usePriceCache } from './usePriceCache'
 import { STORAGE_KEY } from '../utils/constants'
 
 /**
+ * Calculate average cost from transactions using proper cost basis tracking.
+ * When shares are sold, the cost basis is reduced proportionally using the current average.
+ * @param {Array} transactions - Array of transaction objects with type, shares, price
+ * @returns {number} The average cost per share
+ */
+function calculateAverageCostFromTransactions(transactions) {
+  if (!transactions || transactions.length === 0) return 0
+  
+  // Sort transactions by date to process in order
+  const sortedTxns = [...transactions].sort((a, b) => 
+    new Date(a.date || 0) - new Date(b.date || 0)
+  )
+  
+  let totalShares = 0
+  let totalCostBasis = 0
+  
+  for (const txn of sortedTxns) {
+    if (txn.type === 'buy') {
+      // Add shares and cost
+      totalCostBasis += txn.shares * txn.price
+      totalShares += txn.shares
+    } else if (txn.type === 'sell') {
+      // Reduce cost basis proportionally using current average
+      if (totalShares > 0) {
+        const currentAvg = totalCostBasis / totalShares
+        const sharesToSell = Math.min(txn.shares, totalShares)
+        totalCostBasis -= sharesToSell * currentAvg
+        totalShares -= sharesToSell
+      }
+    }
+  }
+  
+  return totalShares > 0 ? totalCostBasis / totalShares : 0
+}
+
+/**
  * Custom hook for managing portfolio state
  */
 export function usePortfolio() {
@@ -50,10 +86,9 @@ export function usePortfolio() {
         const totalShares = allTransactions.reduce((sum, t) => 
           sum + (t.type === 'buy' ? t.shares : -t.shares), 0
         )
-        const totalCost = allTransactions.reduce((sum, t) => 
-          sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
-        )
-        const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
+        
+        // Calculate average cost using proper cost basis tracking
+        const avgPrice = calculateAverageCostFromTransactions(allTransactions)
         
         const updated = [...prev]
         updated[existingIndex] = {
@@ -184,10 +219,9 @@ export function usePortfolio() {
       const totalShares = newTransactions.reduce((sum, t) => 
         sum + (t.type === 'buy' ? t.shares : -t.shares), 0
       )
-      const totalCost = newTransactions.reduce((sum, t) => 
-        sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
-      )
-      const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
+      
+      // Calculate average cost using proper cost basis tracking
+      const avgPrice = calculateAverageCostFromTransactions(newTransactions)
 
       const updated = [...prev]
       updated[stockIndex] = {
@@ -203,7 +237,7 @@ export function usePortfolio() {
   }, [setStocks])
 
   /**
-   * Refresh all stock prices, LDP, 52w high, and daily low/high
+   * Refresh all stock prices, LDCP, 52w high, and daily low/high
    */
   const refreshPrices = useCallback(async (onToast) => {
     if (stocks.length === 0) {
@@ -223,7 +257,7 @@ export function usePortfolio() {
         updatedStocks[i] = { 
           ...stock, 
           currentPrice: data.price,
-          ldp: data.ldp || stock.ldp || data.price, // Keep previous LDP if not available
+          ldcp: data.ldcp || stock.ldcp || data.price, // Keep previous LDCP if not available
           high52w: data.high52w || stock.high52w || null,
           dayLow: data.dayLow || null,
           dayHigh: data.dayHigh || null
@@ -259,7 +293,7 @@ export function usePortfolio() {
 
     const totalPnl = currentValue - totalInvestment
     const totalPnlPercent = totalInvestment > 0 
-      ? ((totalPnl / totalInvestment) * 100).toFixed(2) 
+      ? (totalPnl / totalInvestment) * 100 
       : 0
 
     return {

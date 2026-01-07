@@ -70,26 +70,29 @@ export async function getStocks() {
   }
 
   // Transform to match local storage format
-  return data.map(stock => ({
-    id: stock.id,
-    symbol: stock.symbol,
-    category: stock.category,
-    shares: parseFloat(stock.shares),
-    purchasePrice: parseFloat(stock.purchase_price),
-    currentPrice: stock.current_price ? parseFloat(stock.current_price) : null,
-    ldp: stock.ldp ? parseFloat(stock.ldp) : null,
-    high52w: stock.high_52w ? parseFloat(stock.high_52w) : null,
-    dayLow: stock.day_low ? parseFloat(stock.day_low) : null,
-    dayHigh: stock.day_high ? parseFloat(stock.day_high) : null,
-    addedAt: stock.added_at,
-    transactions: (stock.transactions || []).map(tx => ({
-      id: tx.id,
-      type: tx.type,
-      shares: parseFloat(tx.shares),
-      price: parseFloat(tx.price),
-      date: tx.date
+  // Filter out stocks with 0 shares (those are closed positions)
+  return data
+    .filter(stock => parseFloat(stock.shares) > 0)
+    .map(stock => ({
+      id: stock.id,
+      symbol: stock.symbol,
+      category: stock.category,
+      shares: parseFloat(stock.shares),
+      purchasePrice: parseFloat(stock.purchase_price),
+      currentPrice: stock.current_price ? parseFloat(stock.current_price) : null,
+      ldcp: stock.ldp ? parseFloat(stock.ldp) : null,
+      high52w: stock.high_52w ? parseFloat(stock.high_52w) : null,
+      dayLow: stock.day_low ? parseFloat(stock.day_low) : null,
+      dayHigh: stock.day_high ? parseFloat(stock.day_high) : null,
+      addedAt: stock.added_at,
+      transactions: (stock.transactions || []).map(tx => ({
+        id: tx.id,
+        type: tx.type,
+        shares: parseFloat(tx.shares),
+        price: parseFloat(tx.price),
+        date: tx.date
+      }))
     }))
-  }))
 }
 
 /**
@@ -125,7 +128,7 @@ export async function upsertStock(stockData) {
         shares: stockData.shares,
         purchase_price: stockData.purchasePrice,
         current_price: stockData.currentPrice,
-        ldp: stockData.ldp,
+        ldp: stockData.ldcp,
         high_52w: stockData.high52w,
         day_low: stockData.dayLow,
         day_high: stockData.dayHigh
@@ -149,7 +152,7 @@ export async function upsertStock(stockData) {
         shares: stockData.shares,
         purchase_price: stockData.purchasePrice,
         current_price: stockData.currentPrice,
-        ldp: stockData.ldp,
+        ldp: stockData.ldcp,
         high_52w: stockData.high52w,
         day_low: stockData.dayLow,
         day_high: stockData.dayHigh,
@@ -176,7 +179,7 @@ export async function updateStockPrices(stockId, priceData) {
     .from('stocks')
     .update({
       current_price: priceData.currentPrice,
-      ldp: priceData.ldp,
+      ldp: priceData.ldcp,
       high_52w: priceData.high52w,
       day_low: priceData.dayLow,
       day_high: priceData.dayHigh
@@ -290,7 +293,7 @@ export async function getCachedPrice(symbol) {
 
   return {
     price: data.price ? parseFloat(data.price) : null,
-    ldp: data.ldp ? parseFloat(data.ldp) : null,
+    ldcp: data.ldp ? parseFloat(data.ldp) : null,
     high52w: data.high_52w ? parseFloat(data.high_52w) : null,
     dayLow: data.day_low ? parseFloat(data.day_low) : null,
     dayHigh: data.day_high ? parseFloat(data.day_high) : null
@@ -308,7 +311,7 @@ export async function setCachedPrice(symbol, priceData) {
     .upsert({
       symbol: symbol.toUpperCase(),
       price: priceData.price,
-      ldp: priceData.ldp,
+      ldp: priceData.ldcp,
       high_52w: priceData.high52w,
       day_low: priceData.dayLow,
       day_high: priceData.dayHigh,
@@ -450,6 +453,121 @@ export async function getTotalDividendsBySymbol(symbol) {
   if (error || !data) return 0
 
   return data.reduce((sum, div) => sum + parseFloat(div.amount), 0)
+}
+
+// ============================================================================
+// CLOSED POSITIONS
+// ============================================================================
+
+/**
+ * Get closed positions (stocks that have been fully sold)
+ * Looks for stocks with 0 shares OR where transaction history shows all shares sold
+ */
+export async function getClosedPositions() {
+  if (!isSupabaseConfigured()) return null
+
+  // Get all stocks (including those with 0 shares)
+  const { data: stocks, error: stocksError } = await supabase
+    .from('stocks')
+    .select('id, symbol, shares, category')
+
+  if (stocksError || !stocks) {
+    console.error('Error fetching stocks:', stocksError)
+    return null
+  }
+
+  // Get all transactions
+  const { data: transactions, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('date', { ascending: true })
+
+  if (error || !transactions) {
+    console.error('Error fetching transactions:', error)
+    return null
+  }
+
+  // Create a map of stock_id to stock data
+  const stockIdToData = {}
+  stocks.forEach(s => {
+    stockIdToData[s.id] = s
+  })
+
+  // Group transactions by symbol
+  const bySymbol = {}
+  
+  transactions.forEach(tx => {
+    const stockData = stockIdToData[tx.stock_id]
+    if (!stockData) return
+    const symbol = stockData.symbol
+
+    if (!bySymbol[symbol]) {
+      bySymbol[symbol] = {
+        symbol,
+        category: stockData.category,
+        currentShares: stockData.shares,
+        buyTransactions: [],
+        sellTransactions: [],
+        totalSharesBought: 0,
+        totalSharesSold: 0,
+        totalBoughtAmount: 0,
+        totalSoldAmount: 0
+      }
+    }
+
+    const shares = parseFloat(tx.shares)
+    const price = parseFloat(tx.price)
+
+    if (tx.type === 'buy') {
+      bySymbol[symbol].buyTransactions.push(tx)
+      bySymbol[symbol].totalSharesBought += shares
+      bySymbol[symbol].totalBoughtAmount += shares * price
+    } else if (tx.type === 'sell') {
+      bySymbol[symbol].sellTransactions.push(tx)
+      bySymbol[symbol].totalSharesSold += shares
+      bySymbol[symbol].totalSoldAmount += shares * price
+    }
+  })
+
+  // Filter to only closed positions:
+  // 1. Stocks with 0 current shares, OR
+  // 2. Stocks where shares bought = shares sold (transaction-based detection)
+  const closedPositions = Object.values(bySymbol)
+    .filter(p => {
+      // Must have sold something
+      if (p.totalSharesSold === 0) return false
+      
+      // Check if current shares is 0 OR if buy/sell transactions balance out
+      const isClosed = p.currentShares === 0 || 
+                       Math.abs(p.totalSharesBought - p.totalSharesSold) < 0.0001
+      return isClosed
+    })
+    .map(p => {
+      const avgBuyPrice = p.totalBoughtAmount / p.totalSharesBought
+      const avgSellPrice = p.totalSoldAmount / p.totalSharesSold
+      const realizedPnl = p.totalSoldAmount - p.totalBoughtAmount
+      const pnlPercent = p.totalBoughtAmount > 0 
+        ? (realizedPnl / p.totalBoughtAmount) * 100 
+        : 0
+
+      return {
+        symbol: p.symbol,
+        category: p.category,
+        totalSharesBought: p.totalSharesBought,
+        totalSharesSold: p.totalSharesSold,
+        avgBuyPrice,
+        avgSellPrice,
+        totalBoughtAmount: p.totalBoughtAmount,
+        totalSoldAmount: p.totalSoldAmount,
+        realizedPnl,
+        pnlPercent,
+        buyTransactions: p.buyTransactions,
+        sellTransactions: p.sellTransactions
+      }
+    })
+    .sort((a, b) => b.realizedPnl - a.realizedPnl) // Sort by P&L descending
+
+  return closedPositions
 }
 
 // ============================================================================

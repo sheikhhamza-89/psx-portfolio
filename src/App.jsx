@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react'
-import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, StockFocusTab, DividendsTab, StockDetailModal, Toast, Footer } from './components'
+import { useState, useCallback, useEffect } from 'react'
+import { Header, TabNavigation, SummaryTab, DailyTab, PositionsTab, ClosedPositionsTab, StockFocusTab, DividendsTab, StockDetailModal, Toast, Footer } from './components'
 import { useSupabasePortfolio, useToast } from './hooks'
+import { isSupabaseConfigured } from './lib/supabase'
+import * as supabaseService from './services/supabaseService'
 
 function App() {
   const { 
@@ -13,13 +15,60 @@ function App() {
     updateStock, 
     deleteStock, 
     deleteTransaction, 
-    refreshPrices 
+    refreshPrices,
+    clearCacheAndRefresh
   } = useSupabasePortfolio()
   const { toast, showToast } = useToast()
   const [activeTab, setActiveTab] = useState('summary')
   const [editingStock, setEditingStock] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [selectedStock, setSelectedStock] = useState(null)
+  const [totalDividends, setTotalDividends] = useState(0)
+  const [realizedPnl, setRealizedPnl] = useState(0)
+  const [closedPositions, setClosedPositions] = useState([])
+
+  // Load total dividends, realized P&L, and closed positions
+  useEffect(() => {
+    async function loadData() {
+      if (isSupabaseConfigured()) {
+        // Load dividends
+        const dividends = await supabaseService.getDividends()
+        if (dividends) {
+          const total = dividends.reduce((sum, d) => sum + d.amount, 0)
+          setTotalDividends(total)
+        }
+        
+        // Load closed positions and realized P&L
+        const closed = await supabaseService.getClosedPositions()
+        if (closed) {
+          setClosedPositions(closed)
+          const totalRealized = closed.reduce((sum, p) => sum + p.realizedPnl, 0)
+          setRealizedPnl(totalRealized)
+        }
+      }
+    }
+    loadData()
+  }, [])
+
+  // Callback to refresh dividends when they change
+  const handleDividendChange = useCallback(async () => {
+    if (isSupabaseConfigured()) {
+      const dividends = await supabaseService.getDividends()
+      if (dividends) {
+        const total = dividends.reduce((sum, d) => sum + d.amount, 0)
+        setTotalDividends(total)
+      }
+    }
+  }, [])
+
+  // Callback when closed positions data changes
+  const handleClosedPositionsChange = useCallback((closed) => {
+    if (closed) {
+      setClosedPositions(closed)
+      const totalRealized = closed.reduce((sum, p) => sum + p.realizedPnl, 0)
+      setRealizedPnl(totalRealized)
+    }
+  }, [])
 
   const handleAddStock = useCallback(async (stockData) => {
     if (editingStock) {
@@ -56,6 +105,12 @@ function App() {
     await refreshPrices(showToast)
     setIsRefreshing(false)
   }, [refreshPrices, showToast])
+
+  const handleClearCache = useCallback(async () => {
+    setIsRefreshing(true)
+    await clearCacheAndRefresh(showToast)
+    setIsRefreshing(false)
+  }, [clearCacheAndRefresh, showToast])
 
   const handleCancelEdit = useCallback(() => {
     setEditingStock(null)
@@ -118,7 +173,12 @@ function App() {
       
       <main className="main-content">
         {activeTab === 'summary' && (
-          <SummaryTab stocks={stocks} stats={stats} />
+          <SummaryTab 
+            stocks={stocks} 
+            stats={stats} 
+            totalDividends={totalDividends} 
+            realizedPnl={realizedPnl}
+          />
         )}
 
         {activeTab === 'daily' && (
@@ -133,6 +193,7 @@ function App() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onRefresh={handleRefresh}
+            onClearCache={handleClearCache}
             isRefreshing={isRefreshing}
             editingStock={editingStock}
             onCancelEdit={handleCancelEdit}
@@ -140,12 +201,16 @@ function App() {
           />
         )}
 
+        {activeTab === 'closed' && (
+          <ClosedPositionsTab onClosedPositionsChange={handleClosedPositionsChange} />
+        )}
+
         {activeTab === 'focus' && (
-          <StockFocusTab stocks={stocks} />
+          <StockFocusTab stocks={stocks} closedPositions={closedPositions} />
         )}
 
         {activeTab === 'dividends' && (
-          <DividendsTab stocks={stocks} />
+          <DividendsTab stocks={stocks} onDividendChange={handleDividendChange} />
         )}
       </main>
 

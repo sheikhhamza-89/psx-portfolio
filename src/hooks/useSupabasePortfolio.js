@@ -6,6 +6,42 @@ import { usePriceCache } from './usePriceCache'
 import { STORAGE_KEY } from '../utils/constants'
 
 /**
+ * Calculate average cost from transactions using proper cost basis tracking.
+ * When shares are sold, the cost basis is reduced proportionally using the current average.
+ * @param {Array} transactions - Array of transaction objects with type, shares, price
+ * @returns {number} The average cost per share
+ */
+function calculateAverageCostFromTransactions(transactions) {
+  if (!transactions || transactions.length === 0) return 0
+  
+  // Sort transactions by date to process in order
+  const sortedTxns = [...transactions].sort((a, b) => 
+    new Date(a.date || 0) - new Date(b.date || 0)
+  )
+  
+  let totalShares = 0
+  let totalCostBasis = 0
+  
+  for (const txn of sortedTxns) {
+    if (txn.type === 'buy') {
+      // Add shares and cost
+      totalCostBasis += txn.shares * txn.price
+      totalShares += txn.shares
+    } else if (txn.type === 'sell') {
+      // Reduce cost basis proportionally using current average
+      if (totalShares > 0) {
+        const currentAvg = totalCostBasis / totalShares
+        const sharesToSell = Math.min(txn.shares, totalShares)
+        totalCostBasis -= sharesToSell * currentAvg
+        totalShares -= sharesToSell
+      }
+    }
+  }
+  
+  return totalShares > 0 ? totalCostBasis / totalShares : 0
+}
+
+/**
  * Custom hook for managing portfolio state with Supabase
  * Falls back to localStorage if Supabase is not configured
  */
@@ -14,7 +50,7 @@ export function useSupabasePortfolio() {
   const [supabaseStocks, setSupabaseStocks] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [useSupabase, setUseSupabase] = useState(false)
-  const { getPrice, getStockData } = usePriceCache()
+  const { getPrice, getStockData, clearAllCache } = usePriceCache()
 
   // Check if Supabase is configured and load data
   useEffect(() => {
@@ -86,15 +122,15 @@ export function useSupabasePortfolio() {
         const allTransactions = [...existingStock.transactions, {
           type: 'buy',
           shares: stockData.shares,
-          price: stockData.purchasePrice
+          price: stockData.purchasePrice,
+          date: new Date().toISOString()
         }]
         const totalShares = allTransactions.reduce((sum, t) => 
           sum + (t.type === 'buy' ? t.shares : -t.shares), 0
         )
-        const totalCost = allTransactions.reduce((sum, t) => 
-          sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
-        )
-        const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
+        
+        // Calculate average cost using proper cost basis tracking
+        const avgPrice = calculateAverageCostFromTransactions(allTransactions)
 
         // Update existing stock with new totals
         await supabaseService.upsertStock({
@@ -151,24 +187,24 @@ export function useSupabasePortfolio() {
         if (existingIndex >= 0) {
           const existing = prev[existingIndex]
           const existingTransactions = existing.transactions || []
-          const allTransactions = [...existingTransactions, newTransaction]
-          const totalShares = allTransactions.reduce((sum, t) => 
-            sum + (t.type === 'buy' ? t.shares : -t.shares), 0
-          )
-          const totalCost = allTransactions.reduce((sum, t) => 
-            sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
-          )
-          const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
-          
-          const updated = [...prev]
-          updated[existingIndex] = {
-            ...existing,
-            category: stockData.category || existing.category,
-            shares: totalShares,
-            purchasePrice: parseFloat(avgPrice.toFixed(2)),
-            currentPrice: currentPrice,
-            transactions: allTransactions
-          }
+        const allTransactions = [...existingTransactions, newTransaction]
+        const totalShares = allTransactions.reduce((sum, t) => 
+          sum + (t.type === 'buy' ? t.shares : -t.shares), 0
+        )
+        
+        // Calculate average cost using proper cost basis tracking
+        // Process transactions in order to track running cost basis
+        const avgPrice = calculateAverageCostFromTransactions(allTransactions)
+        
+        const updated = [...prev]
+        updated[existingIndex] = {
+          ...existing,
+          category: stockData.category || existing.category,
+          shares: totalShares,
+          purchasePrice: parseFloat(avgPrice.toFixed(2)),
+          currentPrice: currentPrice,
+          transactions: allTransactions
+        }
           
           onToast?.(`Added ${stockData.shares} shares to ${symbol}`, 'success')
           return updated
@@ -254,20 +290,30 @@ export function useSupabasePortfolio() {
 
       const remainingShares = stock.shares - sellData.shares
 
+      // Always add the sell transaction first (for closed positions tracking)
+      await supabaseService.addTransaction(stock.id, {
+        type: 'sell',
+        shares: sellData.shares,
+        price: sellData.price
+      })
+
       if (remainingShares <= 0) {
-        await supabaseService.deleteStock(stock.id)
-        onToast?.(`Sold all ${symbol} shares`, 'success')
+        // Update stock to 0 shares instead of deleting (preserves history for closed positions)
+        await supabaseService.upsertStock({
+          symbol,
+          shares: 0,
+          purchasePrice: stock.purchasePrice,
+          currentPrice: stock.currentPrice,
+          category: stock.category
+        })
+        onToast?.(`Sold all ${symbol} shares - moved to Closed Positions`, 'success')
       } else {
         await supabaseService.upsertStock({
           symbol,
           shares: remainingShares,
           purchasePrice: stock.purchasePrice,
-          currentPrice: stock.currentPrice
-        })
-        await supabaseService.addTransaction(stock.id, {
-          type: 'sell',
-          shares: sellData.shares,
-          price: sellData.price
+          currentPrice: stock.currentPrice,
+          category: stock.category
         })
         onToast?.(`Sold ${sellData.shares} shares of ${symbol}`, 'success')
       }
@@ -341,10 +387,9 @@ export function useSupabasePortfolio() {
         const totalShares = newTransactions.reduce((sum, t) => 
           sum + (t.type === 'buy' ? t.shares : -t.shares), 0
         )
-        const totalCost = newTransactions.reduce((sum, t) => 
-          sum + (t.type === 'buy' ? t.shares * t.price : 0), 0
-        )
-        const avgPrice = totalShares > 0 ? totalCost / totalShares : 0
+        
+        // Calculate average cost using proper cost basis tracking
+        const avgPrice = calculateAverageCostFromTransactions(newTransactions)
 
         const updated = [...prev]
         updated[stockIndex] = {
@@ -371,15 +416,19 @@ export function useSupabasePortfolio() {
 
     let updated = 0
     let failed = 0
+    
+    // Collect price data to avoid duplicate fetches
+    const priceDataMap = {}
 
     for (const stock of currentStocks) {
       const data = await getStockData(stock.symbol)
+      priceDataMap[stock.symbol] = data
       
       if (data.price !== null) {
         if (useSupabase) {
           await supabaseService.updateStockPrices(stock.id, {
             currentPrice: data.price,
-            ldp: data.ldp,
+            ldcp: data.ldcp,
             high52w: data.high52w,
             dayLow: data.dayLow,
             dayHigh: data.dayHigh
@@ -394,28 +443,21 @@ export function useSupabasePortfolio() {
     if (useSupabase) {
       await reloadFromSupabase()
     } else {
-      // Update localStorage stocks
+      // Update localStorage stocks using already-fetched data
       setStocksLocal(prev => prev.map(stock => {
-        // Find the fetched data for this stock
-        return stock // Will be updated in a separate pass
-      }))
-
-      // Re-fetch all prices and update
-      const updatedStocks = [...stocks]
-      for (let i = 0; i < updatedStocks.length; i++) {
-        const data = await getStockData(updatedStocks[i].symbol)
-        if (data.price !== null) {
-          updatedStocks[i] = {
-            ...updatedStocks[i],
+        const data = priceDataMap[stock.symbol]
+        if (data && data.price !== null) {
+          return {
+            ...stock,
             currentPrice: data.price,
-            ldp: data.ldp || updatedStocks[i].ldp || data.price,
-            high52w: data.high52w || updatedStocks[i].high52w || null,
+            ldcp: data.ldcp || stock.ldcp || data.price,
+            high52w: data.high52w || stock.high52w || null,
             dayLow: data.dayLow || null,
             dayHigh: data.dayHigh || null
           }
         }
-      }
-      setStocksLocal(updatedStocks)
+        return stock
+      }))
     }
 
     if (updated > 0 && failed === 0) {
@@ -425,7 +467,7 @@ export function useSupabasePortfolio() {
     } else {
       onToast?.('Could not fetch prices. Try again later.', 'error')
     }
-  }, [currentStocks, useSupabase, getStockData, reloadFromSupabase, setStocksLocal, stocks])
+  }, [currentStocks, useSupabase, getStockData, reloadFromSupabase, setStocksLocal])
 
   /**
    * Calculate stats
@@ -441,7 +483,7 @@ export function useSupabasePortfolio() {
 
     const totalPnl = currentValue - totalInvestment
     const totalPnlPercent = totalInvestment > 0 
-      ? ((totalPnl / totalInvestment) * 100).toFixed(2) 
+      ? (totalPnl / totalInvestment) * 100 
       : 0
 
     return {
@@ -452,6 +494,15 @@ export function useSupabasePortfolio() {
       isPositive: totalPnl >= 0
     }
   }, [currentStocks])
+
+  /**
+   * Clear cache and refresh prices
+   */
+  const clearCacheAndRefresh = useCallback(async (onToast) => {
+    clearAllCache()
+    onToast?.('Cache cleared. Fetching fresh prices...', 'info')
+    await refreshPrices(onToast)
+  }, [clearAllCache, refreshPrices])
 
   return {
     stocks: currentStocks,
@@ -464,6 +515,7 @@ export function useSupabasePortfolio() {
     deleteStock,
     deleteTransaction,
     refreshPrices,
+    clearCacheAndRefresh,
     reloadFromSupabase
   }
 }

@@ -7,7 +7,8 @@ export function PositionsTab({
   onSell,
   onEdit, 
   onDelete, 
-  onRefresh, 
+  onRefresh,
+  onClearCache,
   isRefreshing,
   editingStock,
   onCancelEdit,
@@ -28,6 +29,7 @@ export function PositionsTab({
         onEdit={onEdit}
         onDelete={onDelete}
         onRefresh={onRefresh}
+        onClearCache={onClearCache}
         isRefreshing={isRefreshing}
         onSymbolClick={onSymbolClick}
       />

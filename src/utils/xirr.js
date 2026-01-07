@@ -121,8 +121,8 @@ function bisectionXIRR(cashFlows, maxIterations = 100, tolerance = 0.0001) {
 }
 
 /**
- * Calculate portfolio XIRR from stocks
- * @param {Array} stocks - Portfolio stocks with addedAt, shares, purchasePrice, currentPrice
+ * Calculate portfolio XIRR from stocks using actual transaction history
+ * @param {Array} stocks - Portfolio stocks with transactions array
  * @returns {number|null} XIRR percentage or null if cannot calculate
  */
 export function calculatePortfolioXIRR(stocks) {
@@ -133,26 +133,51 @@ export function calculatePortfolioXIRR(stocks) {
   const now = new Date()
   const cashFlows = []
 
-  // Add purchase cash flows (negative - money going out)
+  // Process all transactions from all stocks
   for (const stock of stocks) {
-    const purchaseDate = stock.addedAt ? new Date(stock.addedAt) : new Date()
-    const purchaseAmount = -(stock.shares * stock.purchasePrice)
+    const transactions = stock.transactions || []
     
-    cashFlows.push({
-      amount: purchaseAmount,
-      date: purchaseDate
-    })
+    if (transactions.length > 0) {
+      // Use actual transaction history
+      for (const txn of transactions) {
+        const txnDate = txn.date ? new Date(txn.date) : new Date(stock.addedAt || now)
+        const amount = txn.shares * txn.price
+        
+        cashFlows.push({
+          // BUY = money out (negative), SELL = money in (positive)
+          amount: txn.type === 'buy' ? -amount : amount,
+          date: txnDate
+        })
+      }
+    } else {
+      // Fallback for stocks without transaction history (legacy data)
+      const purchaseDate = stock.addedAt ? new Date(stock.addedAt) : new Date()
+      const purchaseAmount = -(stock.shares * stock.purchasePrice)
+      
+      cashFlows.push({
+        amount: purchaseAmount,
+        date: purchaseDate
+      })
+    }
   }
 
-  // Add current value as final cash flow (positive - as if selling today)
+  // Add current value of holdings as final cash flow (positive - as if selling today)
   const totalCurrentValue = stocks.reduce((sum, stock) => 
     sum + (stock.shares * (stock.currentPrice || stock.purchasePrice)), 0
   )
 
-  cashFlows.push({
-    amount: totalCurrentValue,
-    date: now
-  })
+  // Only add current value if there are shares held
+  if (totalCurrentValue > 0) {
+    cashFlows.push({
+      amount: totalCurrentValue,
+      date: now
+    })
+  }
+
+  // Need at least 2 cash flows for XIRR
+  if (cashFlows.length < 2) {
+    return null
+  }
 
   const xirr = calculateXIRR(cashFlows)
   

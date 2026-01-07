@@ -430,6 +430,31 @@ body {
   color: var(--text-secondary);
 }
 
+/* Gain / Loss Summary Section */
+.gain-loss-summary-section {
+  margin-bottom: var(--space-lg);
+}
+
+.gain-loss-summary-section .section-subtitle {
+  margin-bottom: var(--space-md);
+}
+
+.gain-loss-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1200px) {
+  .gain-loss-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .gain-loss-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Performers Section */
 .performers-section {
   background: var(--bg-surface);
@@ -459,26 +484,80 @@ body {
   gap: var(--space-lg);
 }
 
+/* New Performers Columns Layout */
+.performers-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xl);
+}
+
+.performers-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.performers-column-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-sm) 0;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.performers-column.gainers .performers-column-title {
+  color: var(--gain);
+}
+
+.performers-column.losers .performers-column-title {
+  color: var(--loss);
+}
+
+.column-icon {
+  font-size: 0.75rem;
+}
+
+.performers-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 .performer-card {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--space-lg);
+  padding: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 .performer-card.best {
-  border-top: 2px solid var(--gain);
+  border-left: 3px solid var(--gain);
 }
 
 .performer-card.worst {
-  border-top: 2px solid var(--loss);
+  border-left: 3px solid var(--loss);
+}
+
+.performer-rank {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 24px;
 }
 
 .performer-header {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  gap: var(--space-sm);
+  flex: 1;
 }
 
 .performer-badge {
@@ -509,13 +588,15 @@ body {
 
 .performer-stats {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-md);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
 }
 
 .performer-pnl {
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .performer-pnl.positive {
@@ -527,7 +608,7 @@ body {
 }
 
 .performer-percent {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
@@ -685,6 +766,12 @@ body {
   color: var(--text-muted);
   padding: var(--space-lg);
   font-style: italic;
+}
+
+.na-value {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.8em;
 }
 
 .gainer-row {
@@ -1062,6 +1149,32 @@ body {
 
 .btn-refresh:hover:not(:disabled) .refresh-icon {
   transform: rotate(180deg);
+}
+
+/* Header Actions Container */
+.header-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* Clear Cache Button */
+.btn-clear-cache {
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-medium);
+  font-size: 0.75rem;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.btn-clear-cache:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: var(--loss);
+  color: var(--loss);
+}
+
+.cache-icon {
+  font-size: 0.9rem;
 }
 
 .btn-icon {
@@ -1488,6 +1601,104 @@ body {
 .center-label {
   display: block;
   font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* 3D Pie Chart Styles */
+.chart-3d {
+  overflow: visible;
+}
+
+.chart-wrapper-3d {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.pie-3d-container {
+  position: relative;
+  width: 220px;
+  height: 180px;
+  perspective: 800px;
+  transform-style: preserve-3d;
+}
+
+.pie-3d-shadow {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 40px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.4) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(8px);
+}
+
+.pie-3d-depth {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(55deg) translateZ(-15px);
+  transform-style: preserve-3d;
+  filter: brightness(0.6);
+}
+
+.pie-3d-main {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(55deg);
+  transform-style: preserve-3d;
+}
+
+.pie-3d-main::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.chart-legend-container {
+  margin-top: var(--space-md);
+}
+
+.chart-center-label-3d {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  background: var(--bg-elevated);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.chart-center-label-3d .center-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.chart-center-label-3d .center-label {
+  display: block;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
@@ -2011,6 +2222,10 @@ body {
   }
   
   .performers-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .performers-columns {
     grid-template-columns: 1fr;
   }
   
@@ -2551,5 +2766,213 @@ body {
   text-align: center;
   padding: var(--space-xl);
   color: var(--text-muted);
+}
+
+/* Dividend Portfolio Table */
+.dividends-portfolio-table .payments-count {
+  text-align: center;
+}
+
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  background: var(--accent-secondary);
+  color: var(--bg-base);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.dividends-portfolio-table .total-amount {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.dividends-portfolio-table .last-payment {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.dividends-portfolio-table .avg-payment {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Dividend Grand Total in Header */
+.dividend-grand-total {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: linear-gradient(135deg, rgba(0, 229, 160, 0.1) 0%, rgba(0, 229, 160, 0.05) 100%);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+}
+
+.dividend-grand-total .total-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.dividend-grand-total .total-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--gain);
+}
+
+/* Dividend Badge in Modal */
+.dividend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: linear-gradient(135deg, rgba(0, 229, 160, 0.2) 0%, rgba(0, 229, 160, 0.1) 100%);
+  color: var(--gain);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Closed Positions Tab
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.closed-positions-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.closed-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Closed Positions Table */
+.closed-positions-table .symbol-closed {
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+}
+
+.closed-positions-table .shares {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.closed-positions-table .price {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.closed-positions-table .value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.closed-positions-table .pnl {
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.closed-positions-table .pnl.positive {
+  color: var(--gain);
+}
+
+.closed-positions-table .pnl.negative {
+  color: var(--loss);
+}
+
+.closed-positions-table .pnl-percent {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.closed-positions-table .pnl-percent.positive {
+  background: var(--gain-bg);
+  color: var(--gain);
+}
+
+.closed-positions-table .pnl-percent.negative {
+  background: var(--loss-bg);
+  color: var(--loss);
+}
+
+/* Loading state */
+.closed-positions-tab .loading-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Empty State */
+.closed-positions-tab .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-medium);
+}
+
+.closed-positions-tab .empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+.closed-positions-tab .empty-state p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-bottom: var(--space-sm);
+}
+
+.closed-positions-tab .empty-state .empty-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Stock Focus Tab - Closed Position Styles */
+.focus-symbol .closed-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+}
+
+.focus-price .closed-status {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
